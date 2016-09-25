@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>chess game</title>
+		<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+		<link rel="stylesheet" type="text/css" href="chess.css">
+	</head>
+	<body>
+		<div class="board-box">
+			<table class="board">
+				<tr class="board-row">
+					<td class="board-num">8</td>
+					<td class="board-cell" id="A8"></td>
+					<td class="board-cell" id="B8"></td>
+					<td class="board-cell" id="C8"></td>
+					<td class="board-cell" id="D8"></td>
+					<td class="board-cell" id="E8"></td>
+					<td class="board-cell" id="F8"></td>
+					<td class="board-cell" id="G8"></td>
+					<td class="board-cell" id="H8"></td>	
+				</tr>
+				<tr class="board-row">
+					<td class="board-num">7</td>		
+					<td class="board-cell" id="A7"></td>
+					<td class="board-cell" id="B7"></td>
+					<td class="board-cell" id="C7"></td>
+					<td class="board-cell" id="D7"></td>
+					<td class="board-cell" id="E7"></td>
+					<td class="board-cell" id="F7"></td>
+					<td class="board-cell" id="G7"></td>
+					<td class="board-cell" id="H7"></td>			
+				</tr>
+				<tr class="board-row">
+					<td class="board-num">6</td>		
+					<td class="board-cell" id="A6"></td>
+					<td class="board-cell" id="B6"></td>
+					<td class="board-cell" id="C6"></td>
+					<td class="board-cell" id="D6"></td>
+					<td class="board-cell" id="E6"></td>
+					<td class="board-cell" id="F6"></td>
+					<td class="board-cell" id="G6"></td>
+					<td class="board-cell" id="H6"></td>			
+				</tr>
+				<tr class="board-row">
+					<td class="board-num">5</td>		
+					<td class="board-cell" id="A5"></td>
+					<td class="board-cell" id="B5"></td>
+					<td class="board-cell" id="C5"></td>
+					<td class="board-cell" id="D5"></td>
+					<td class="board-cell" id="E5"></td>
+					<td class="board-cell" id="F5"></td>
+					<td class="board-cell" id="G5"></td>
+					<td class="board-cell" id="H5"></td>			
+				</tr>
+				<tr class="board-row">
+					<td class="board-num">4</td>		
+					<td class="board-cell" id="A4"></td>
+					<td class="board-cell" id="B4"></td>
+					<td class="board-cell" id="C4"></td>
+					<td class="board-cell" id="D4"></td>
+					<td class="board-cell" id="E4"></td>
+					<td class="board-cell" id="F4"></td>
+					<td class="board-cell" id="G4"></td>
+					<td class="board-cell" id="H4"></td>			
+				</tr>
+				<tr class="board-row">
+					<td class="board-num">3</td>		
+					<td class="board-cell" id="A3"></td>
+					<td class="board-cell" id="B3"></td>
+					<td class="board-cell" id="C3"></td>
+					<td class="board-cell" id="D3"></td>
+					<td class="board-cell" id="E3"></td>
+					<td class="board-cell" id="F3"></td>
+					<td class="board-cell" id="G3"></td>
+					<td class="board-cell" id="H3"></td>	
+				</tr>
+				<tr class="board-row">
+					<td class="board-num">2</td>	
+					<td class="board-cell" id="A2"></td>
+					<td class="board-cell" id="B2"></td>
+					<td class="board-cell" id="C2"></td>
+					<td class="board-cell" id="D2"></td>
+					<td class="board-cell" id="E2"></td>
+					<td class="board-cell" id="F2"></td>
+					<td class="board-cell" id="G2"></td>
+					<td class="board-cell" id="H2"></td>	
+				</tr>
+				<tr class="board-row">
+					<td class="board-num">1</td>		
+					<td class="board-cell" id="A1"></td>
+					<td class="board-cell" id="B1"></td>
+					<td class="board-cell" id="C1"></td>
+					<td class="board-cell" id="D1">&#9813;</td>
+					<td class="board-cell" id="E1"></td>
+					<td class="board-cell" id="F1"></td>
+					<td class="board-cell" id="G1"></td>
+					<td class="board-cell" id="H1"></td>	
+				</tr>
+				<tr class="board-row">
+					<td class="board-num"></td>	
+					<td class="board-num">A</td>
+					<td class="board-num">B</td>
+					<td class="board-num">C</td>
+					<td class="board-num">D</td>
+					<td class="board-num">E</td>
+					<td class="board-num">F</td>
+					<td class="board-num">G</td>
+					<td class="board-num">H</td>
+				</tr>
+			</table>
+			<div class="status-board">
+				<p class="coordinates"></p>
+				<p class="cell-num"></p>
+			</div>
+		</div>
+		<script>
+			var drag = false;
+			$('.board-cell').mousedown(function() {
+				$('.board-cell').removeClass('active');
+				$(this).addClass('active');
+				drag = true;
+				$('.coordinates').text(event.pageX + ', ' + event.pageY);
+				$('.cell-num').text(event.target.id);
+
+			});
+			$('.board-cell').mouseup(function() {
+				// $('.board-cell:contains("\u2655")').text('');
+				// $('.board-cell.active').html('\u2655');
+				$('.board-cell').removeClass('active');
+				drag = false;
+				$('.coordinates').text('');
+				$('.cell-num').text('');
+			});
+			$('.board-cell').mousemove(function(e) {
+				if (drag) {
+					$('.coordinates').text(e.pageX + ', ' + e.pageY);
+					$('.cell-num').text(this.id);
+				}
+				else {
+					$('.coordinates').text('');
+					$('.cell-num').text('');
+				}
+			});
+			$('.board').mouseleave(function(e) {
+				drag = false;
+				$('.coordinates').text('');
+				$('.cell-num').text('');
+			});
+		</script>
+	</body>
+</html>

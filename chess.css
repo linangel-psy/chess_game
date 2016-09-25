@@ -1,0 +1,68 @@
+.board-box {
+	height: 98vh;
+	width: 98vw;
+	display: flex;
+	flex-direction: column;
+	flex-direction: row;
+	justify-content: center;
+	align-items: center;
+	cursor: default;
+	-webkit-touch-callout: none;
+	-webkit-user-select: none;
+	-khtml-user-select: none;
+	-moz-user-select: none;
+	-ms-user-select: none;
+	user-select: none;
+}
+.board {
+	font-size: 30px;
+	font-weight: bold;
+	border-collapse: collapse;
+}
+.board-row:nth-child(odd) > .board-cell:nth-child(odd), .board-row:nth-child(even) > .board-cell:nth-child(even) {
+	background: #736E6D;
+}
+.board-num {
+	text-align: center;
+	min-width: 60px;
+	min-height: 60px;
+}
+.board-cell {
+	border: 1px solid #736E6D;
+	padding: 0;
+	width: 80px;
+	height: 80px;
+	font-size: 60px;
+	font-weight: normal;
+	text-align: center;
+	vertical-align: middle;
+	position: relative;
+}
+.board-cell.active {
+	background-color: red;
+}
+.possible-move {
+	position: relative;
+}
+.possible-move:after {
+	content: " ";
+	z-index: 10;
+	display: block;
+	position: absolute;
+	height: 100%;
+	top: 0;
+	left: 0;
+	right: 0;
+	background: rgba(0, 255, 0, 0.2);
+}
+.chess-symbol {
+	width: 100%;
+	height: 100%;
+	z-index: 10;
+}
+.status-board {
+	width: 250px;
+	height: 250px;
+	margin: 30px;
+	background: #C2C2C2;
+}
