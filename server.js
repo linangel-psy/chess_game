@@ -1,7 +1,7 @@
 "use strict";
 
 var webSocketsServerPort = 1337;
-var webSocketServer = require('websocket').server;
+var WebSocketServer = require('ws').Server;
 var http = require('http');
 var path = require("path"); 
 var fs = require('fs');
@@ -13,7 +13,6 @@ var server = http.createServer(function(request, response) {
 	if (filename == '/') {
 		filename = "/chess.html";
 	};
-	console.log(filename);
 	var ext = path.extname(filename);
 	var localPath = __dirname;
 	var validExtensions = {
@@ -25,7 +24,7 @@ var server = http.createServer(function(request, response) {
 		".gif": "image/gif",
 		".png": "image/png"
 	};
-	var isValidExt = validExtensions[ext];
+	var isValidExt = validExtensions[ext] || 'text/html';
 
 	if (isValidExt) {
 		localPath += filename;
@@ -59,8 +58,4 @@ server.listen(webSocketsServerPort, function() {
 });
 
 //WebSocket server
-var wsServer = new webSocketServer({
-	// WebSocket server is tied to a HTTP server. WebSocket request is just
-	// an enhanced HTTP request. For more info http://tools.ietf.org/html/rfc6455#page-6
-	httpServer: server
-});
+var wsServer = new WebSocketServer({ server: server });
