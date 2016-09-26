@@ -158,6 +158,9 @@ $('.board-cell').mouseup(function() {
 		lastMove = name + ': ' + lastCellClick + ' - ' + newPosition;
 		data.push({'.last-move': lastMove});
 		lastMoveColor = $('.chess-symbol.active').data('color');
+
+		//sent lastMove to server
+		ws.send(lastMove);
 	}
 	else {
 		$('#' + lastCellClick).append($('.chess-symbol.active'));
@@ -305,6 +308,6 @@ var reconnect = function() {
 	var url = 'ws://' + location.host + '/ws';
 	ws = new WebSocket(url);
 	ws.onopen = function(ev) {
-		ws.send('hello');
+		
 	};
 }();
