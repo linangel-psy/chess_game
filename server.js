@@ -55,7 +55,14 @@ var server = http.createServer(function(request, response) {
 });
 server.listen(webSocketsServerPort, function() {
 	console.log((new Date()) + " Server is listening on port " + webSocketsServerPort);
+
 });
 
 //WebSocket server
 var wsServer = new WebSocketServer({ server: server });
+
+wsServer.on('connection', function connection(ws) {
+	ws.on('message', function incoming(message) {
+		console.log('received: %s', message);
+	});
+});

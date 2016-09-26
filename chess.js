@@ -299,3 +299,12 @@ var possibleMoves = function(id) {
 	}
 	return movesList;
 }
+
+//connection with server
+var reconnect = function() {
+	var url = 'ws://' + location.host + '/ws';
+	ws = new WebSocket(url);
+	ws.onopen = function(ev) {
+		ws.send('hello');
+	};
+}();
