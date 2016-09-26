@@ -310,4 +310,7 @@ var reconnect = function() {
 	ws.onopen = function(ev) {
 		
 	};
+	ws.onmessage = function(ev) {
+		console.log('message: ', ev.data);
+	};
 }();

@@ -64,5 +64,8 @@ var wsServer = new WebSocketServer({ server: server });
 wsServer.on('connection', function connection(ws) {
 	ws.on('message', function incoming(message) {
 		console.log('received: %s', message);
+		wsServer.clients.forEach(function each(client) {
+			client.send(message);
+		});
 	});
 });
