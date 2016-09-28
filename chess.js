@@ -5,86 +5,9 @@ var letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
 var drag = false;
 var X, Y, lastCellClick;
 var movesList = [];
-var lastMoveColor = 'black';
+var lastMoveColor = '';
 var drag = false;
-
-var chessSymbols = {
-	'White Queen': {
-		symbol: '\u2655',
-		type: 'queen',
-		color: 'white',
-		position: ['D1']
-	},
-	'White Pawn': {
-		symbol: '\u2659',
-		type: 'pawn',
-		color: 'white',
-		position: ['A2', 'B2', 'C2', 'D2', 'E2', 'F2', 'G2', 'H2']
-	},
-	'White Knight': {
-		symbol: '\u2658',
-		type: 'knight',
-		color: 'white',
-		position: ['B1', 'G1']
-	},
-	'White Bishop': {
-		symbol: '\u2657',
-		type: 'bishop',
-		color: 'white',
-		position: ['C1', 'F1']
-	},
-	'White Rook': {
-		symbol: '\u2656',
-		type: 'rook',
-		color: 'white',
-		position: ['A1', 'H1']
-	},
-	'White King': {
-		symbol: '\u2654',
-		type: 'king',
-		color: 'white',
-		position: ['E1']
-	},
-
-	'Black Queen': {
-		symbol: '\u265B',
-		type: 'queen',
-		color: 'black',
-		position: ['D8']
-	},
-	'Black Pawn': {
-		symbol: '\u265F',
-		type: 'pawn',
-		color: 'black',
-		position: ['A7', 'B7', 'C7', 'D7', 'E7', 'F7', 'G7', 'H7']
-	},
-	'Black Knight': {
-		symbol: '\u265E',
-		type: 'knight',
-		color: 'black',
-		position: ['B8', 'G8']
-	},
-	'Black Bishop': {
-		symbol: '\u265D',
-		type: 'bishop',
-		color: 'black',
-		position: ['C8', 'F8']
-	},
-	'Black Rook': {
-		symbol: '\u265C',
-		type: 'rook',
-		color: 'black',
-		position: ['A8', 'H8']
-	},
-	'Black King': {
-		symbol: '\u265A',
-		type: 'king',
-		color: 'black',
-		position: ['E8']
-	},
-};
-
-var chessSymbolsGame = $.extend(true, {}, chessSymbols);
+var chessSymbolsGame = {};
 
 //create chess board
 
@@ -105,21 +28,24 @@ for (var i = size; i >= 0; i--) {
 	}
 };
 
-//symbols on board
+// symbols on board
 
-$.each (chessSymbolsGame, function(name, value){
-	$.each(value.position, function(k, id) {
-		$('#' + id).append('<div class="chess-symbol"></div>');
-		$('#' + id).find('.chess-symbol').html(value.symbol).addClass(name).data({'type': value.type, 'name': name, 'color': value.color});
+var setSymbols = function() {
+	$('.board-cell').html('');
+	$.each (chessSymbolsGame, function(name, value){
+		$.each(value.position, function(k, id) {
+			$('#' + id).append('<div class="chess-symbol"></div>');
+			$('#' + id).find('.chess-symbol').html(value.symbol).addClass(name).data({'type': value.type, 'name': name, 'color': value.color});
+		})
 	})
-})
+}
 
 
 
 $('.board-cell').mousedown(function() {
 	drag = true;
 	var data = [];
-	if ($(event.target).hasClass('chess-symbol') && $(event.target).data('color') != lastMoveColor) {
+	if ($(event.target).hasClass('chess-symbol') && $(event.target).data('color') != lastMoveColor && $(event.target).data('color') != '') {
 		var cellId = $(event.target).parent('.board-cell')[0].id;
 		var symbolId = $(event.target).data('name');
 		var top = event.target.offsetTop;
@@ -148,19 +74,24 @@ $('.board-cell').mousedown(function() {
 });
 $('.board-cell').mouseup(function() {
 	drag = false;
-	var data = [];
-	var lastMove = '';
 	var name = $('.chess-symbol.active').data('name');
-	data.push({'.coordinates': ''}, {'.move-cell': ''});
 	var newPosition = getElementByPosition(event.pageX, event.pageY);
 	if ($.inArray(newPosition, movesList) != -1) {
-		$('#' + newPosition).append($('.chess-symbol.active'))
-		lastMove = name + ': ' + lastCellClick + ' - ' + newPosition;
-		data.push({'.last-move': lastMove});
-		lastMoveColor = $('.chess-symbol.active').data('color');
 
-		//sent lastMove to server
-		ws.send(lastMove);
+		// send last move color to server
+		var color = $('.chess-symbol.active').data('color');
+		ws.send(JSON.stringify({"type": "color", "message": color}));
+
+		// send board to server
+		var lastCellClickPos = $.inArray(lastCellClick, chessSymbolsGame[name].position);
+		if (lastCellClickPos != -1) {
+			chessSymbolsGame[name].position[lastCellClickPos] = newPosition;
+		}
+		ws.send(JSON.stringify({"type": "board", "message": chessSymbolsGame}));
+
+		// send last move to server
+		var lastMoveServer = {"name": name, "prevPosition": lastCellClick, "newPosition": newPosition}
+		ws.send(JSON.stringify({"type": "move", "message": lastMoveServer}));
 	}
 	else {
 		$('#' + lastCellClick).append($('.chess-symbol.active'));
@@ -169,8 +100,6 @@ $('.board-cell').mouseup(function() {
 
 	$('.chess-symbol').removeAttr('style').removeClass('active');
 	$('.board-cell').removeClass('possible-move');
-	
-	setText(data);
 });
 $('.board-cell').mousemove(function(e) {
 	var data = [];
@@ -191,6 +120,8 @@ $('.board').mouseleave(function(e) {
 	setText(data);
 });
 
+//  set text on status board
+
 var setText = function(data) {
 	$.each(data, function(index, value) {
 		$.each(value, function(className, text) {
@@ -198,6 +129,9 @@ var setText = function(data) {
 		})	
 	})
 };
+
+// get id of element by position
+
 var getElementByPosition = function(x, y) {
 	var element;
 	$('.board-cell').each(function() {
@@ -213,6 +147,8 @@ var getElementByPosition = function(x, y) {
 	});
 	return element;
 };
+
+// calculate possible moves
 
 var possibleMoves = function(id) {
 	movesList = [];
@@ -303,7 +239,7 @@ var possibleMoves = function(id) {
 	return movesList;
 }
 
-//connection with server
+// connection with server
 var reconnect = function() {
 	var url = 'ws://' + location.host + '/ws';
 	ws = new WebSocket(url);
@@ -311,6 +247,22 @@ var reconnect = function() {
 		
 	};
 	ws.onmessage = function(ev) {
-		console.log('message: ', ev.data);
+		var serverMessage = (JSON.parse(ev.data));
+		if (serverMessage.type == 'board') {
+			chessSymbolsGame = serverMessage.message;
+			setSymbols();
+		}
+		else if (serverMessage.type == 'move') {
+			var lastMove = serverMessage.message['name'] + ': ' + 
+				serverMessage.message['prevPosition'] + ' - ' + 
+				serverMessage.message['newPosition'];
+			var lastClick = serverMessage.message['name'] + ': ' + 
+				serverMessage.message['prevPosition'];
+			var data = [{'.last-move': lastMove}, {'.click-cell': lastClick}];
+			setText(data);
+		}
+		else if (serverMessage.type == 'color') {
+			lastMoveColor = serverMessage.message
+		}
 	};
 }();
