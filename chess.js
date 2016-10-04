@@ -1,16 +1,12 @@
 //variables
-
 var size = 8;
 var letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
 var drag = false;
-var X, Y, lastCellClick;
+var X, Y, lastCellClick, lastMoveColor, myColor, gameName;
 var movesList = [];
-var lastMoveColor = '';
-var drag = false;
 var chessSymbolsGame = {};
 
 //create chess board
-
 for (var i = size; i >= 0; i--) {
 	if (i != 0) {
 		$('.board').append('<tr class="board-row row-' + i + '"></tr>');
@@ -29,7 +25,6 @@ for (var i = size; i >= 0; i--) {
 };
 
 // symbols on board
-
 var setSymbols = function() {
 	$('.board-cell').html('');
 	$.each (chessSymbolsGame, function(name, value){
@@ -40,12 +35,11 @@ var setSymbols = function() {
 	})
 }
 
-
-
+// on mousedown on chess board show possible moves
 $('.board-cell').mousedown(function() {
 	drag = true;
 	var data = [];
-	if ($(event.target).hasClass('chess-symbol') && $(event.target).data('color') != lastMoveColor && $(event.target).data('color') != '') {
+	if ($(event.target).hasClass('chess-symbol') && $(event.target).data('color') != lastMoveColor && $(event.target).data('color') != '' && $(event.target).data('color') == myColor) {
 		var cellId = $(event.target).parent('.board-cell')[0].id;
 		var symbolId = $(event.target).data('name');
 		var top = event.target.offsetTop;
@@ -72,6 +66,8 @@ $('.board-cell').mousedown(function() {
 	setText(data);
 	lastCellClick = cellId;
 });
+
+// on mouseup on chess board send move information to server or do nothing
 $('.board-cell').mouseup(function() {
 	drag = false;
 	var name = $('.chess-symbol.active').data('name');
@@ -80,18 +76,18 @@ $('.board-cell').mouseup(function() {
 
 		// send last move color to server
 		var color = $('.chess-symbol.active').data('color');
-		ws.send(JSON.stringify({"type": "color", "message": color}));
+		ws.send(JSON.stringify({"type": "color", "gameName": gameName, "message": color}));
 
 		// send board to server
 		var lastCellClickPos = $.inArray(lastCellClick, chessSymbolsGame[name].position);
 		if (lastCellClickPos != -1) {
 			chessSymbolsGame[name].position[lastCellClickPos] = newPosition;
 		}
-		ws.send(JSON.stringify({"type": "board", "message": chessSymbolsGame}));
+		ws.send(JSON.stringify({"type": "board", "gameName": gameName, "message": chessSymbolsGame}));
 
 		// send last move to server
 		var lastMoveServer = {"name": name, "prevPosition": lastCellClick, "newPosition": newPosition}
-		ws.send(JSON.stringify({"type": "move", "message": lastMoveServer}));
+		ws.send(JSON.stringify({"type": "move", "gameName": gameName, "message": lastMoveServer}));
 	}
 	else {
 		$('#' + lastCellClick).append($('.chess-symbol.active'));
@@ -101,6 +97,8 @@ $('.board-cell').mouseup(function() {
 	$('.chess-symbol').removeAttr('style').removeClass('active');
 	$('.board-cell').removeClass('possible-move');
 });
+
+// on mousemove on chess board show mouse coordinates
 $('.board-cell').mousemove(function(e) {
 	var data = [];
 	if (drag) {
@@ -113,6 +111,8 @@ $('.board-cell').mousemove(function(e) {
 	setText(data);
 	$('.chess-symbol.active').css({'top': event.pageY + Y, 'left': event.pageX + X});
 });
+
+// on mouseleave from chess board stop symbol moving
 $('.board').mouseleave(function(e) {
 	drag = false;
 	var data = [];
@@ -120,8 +120,46 @@ $('.board').mouseleave(function(e) {
 	setText(data);
 });
 
-//  set text on status board
+// show/hide list of games and users
+$('.show-gamelist').click(function(e) {
+	$('.game-list-box').show('slow');
+});
+$('.close-userlist').click(function(e) {
+	$('.game-list-box').hide('slow');
+});
 
+// show/hide pop-up to add new game
+$('.show-popup').click(function(e) {
+	$('.create-game-popup').removeClass('hidden');
+});
+$('.close-popup').click(function(e) {
+	$('.create-game-popup').addClass('hidden');
+});
+
+// create new game and send to server or show/hide warning message
+$('.create-game').click(function(e) {
+	gameName = $('#gameName').val();
+	if (gameName) {
+		ws.send(JSON.stringify({"type": "createGame", "message": gameName}));
+		$('.create-game-popup').addClass('hidden');
+	}
+	else {
+		$('.warning-message').text('Enter game name');
+	}
+});
+$('#gameName').on('input', function(e) {
+	$('.warning-message').text('');
+});
+
+//open selected game
+$('.game-link').click(function(e) {
+	var name;
+	console.log(1);
+	console.log(e.target.id);
+	// ws.send(JSON.stringify({"type": "openGame", "message": name}));
+});
+
+//  set text on status board
 var setText = function(data) {
 	$.each(data, function(index, value) {
 		$.each(value, function(className, text) {
@@ -130,8 +168,7 @@ var setText = function(data) {
 	})
 };
 
-// get id of element by position
-
+// get id of element by mouse position
 var getElementByPosition = function(x, y) {
 	var element;
 	$('.board-cell').each(function() {
@@ -149,7 +186,6 @@ var getElementByPosition = function(x, y) {
 };
 
 // calculate possible moves
-
 var possibleMoves = function(id) {
 	movesList = [];
 	var idArr = id.split('');
@@ -239,6 +275,12 @@ var possibleMoves = function(id) {
 	return movesList;
 }
 
+// blinking text!
+var blink = function() {
+	$('.move-message').fadeTo('slow', 0.3).fadeTo('slow', 1.0);
+}
+setInterval(function(){blink()}, 3000);
+
 // connection with server
 var reconnect = function() {
 	var url = 'ws://' + location.host + '/ws';
@@ -246,12 +288,17 @@ var reconnect = function() {
 	ws.onopen = function(ev) {
 		
 	};
+
 	ws.onmessage = function(ev) {
 		var serverMessage = (JSON.parse(ev.data));
+
+		// set symbols on board from server message
 		if (serverMessage.type == 'board') {
 			chessSymbolsGame = serverMessage.message;
 			setSymbols();
 		}
+
+		// set text on status board from server message
 		else if (serverMessage.type == 'move') {
 			var lastMove = serverMessage.message['name'] + ': ' + 
 				serverMessage.message['prevPosition'] + ' - ' + 
@@ -261,8 +308,45 @@ var reconnect = function() {
 			var data = [{'.last-move': lastMove}, {'.click-cell': lastClick}];
 			setText(data);
 		}
+
+		// set color of last move from server message
 		else if (serverMessage.type == 'color') {
-			lastMoveColor = serverMessage.message
+			lastMoveColor = serverMessage.message;
 		}
+
+		// show avaliable games from server message
+		else if (serverMessage.type === 'newGame') {
+			$('.game-list').html('');
+			$.each(serverMessage.message, function(name, value) {
+				$('.game-list').append('<div class="game-link" id="' + name + '"><span class="pic">&#127937;</span>' + name + '</div>');
+				$('.game-link#' + name).append('<div class="game-user label">Players</div>')
+				if (value.white) {
+					$('.game-link#' + name).append('<div class="game-user">' + value.white + '</div>')
+				}
+				if (value.black) {
+					$('.game-link#' + name).append('<div class="game-user">' + value.black + '</div>')
+				}
+				if (value.observers) {
+					$('.game-link#' + name).append('<div class="game-user label">Observers</div>')
+					$.each(value.observers, function() {
+						$('.game-link#' + name).append('<div class="game-user">' + this + '</div>')
+					})
+				}
+			});
+		}
+
+		// show users online from server message
+		else if (serverMessage.type === 'clients') {
+			$('.users-list').html('');
+			$.each(serverMessage.message, function(index, value) {
+				$('.users-list').append('<div class="user-link" id="' + value.id + '"><span class="pic">' + value.face + '</span>' + value.id + '</div>');
+			})
+		}
+
+		// set user color in game from server message
+		else if (serverMessage.type === 'userColor') {
+			myColor = serverMessage.message;
+		}
+
 	};
 }();

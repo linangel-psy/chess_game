@@ -1,12 +1,16 @@
 "use strict";
 
+//variables
 var webSocketsServerPort = 1337;
 var WebSocketServer = require('ws').Server;
 var http = require('http');
 var path = require("path"); 
 var fs = require('fs');
-var lastMoveColor = "black";
+var lastMoveColor = '';
 var lastMove = {};
+var games = {};
+var userId = 0;
+var faces = ['&#128045;', '&#128046;', '&#128047;', '&#128048;', '&#128049;', '&#128054;', '&#128053;', '&#128055;', '&#128056;', '&#128057;', '&#128059;', '&#128060;', '&#128052;'];
 
 var chessSymbols = {
 	"White Queen": {
@@ -88,7 +92,6 @@ var chessSymbolsGame = chessSymbols;
 
 // HTTP server
 var server = http.createServer(function(request, response) {
-
 	var filename = request.url || "/chess.html";
 	if (filename == '/') {
 		filename = "/chess.html";
@@ -105,7 +108,6 @@ var server = http.createServer(function(request, response) {
 		".png": "image/png"
 	};
 	var isValidExt = validExtensions[ext] || 'text/html';
-
 	if (isValidExt) {
 		localPath += filename;
 		fs.exists(localPath, function(exists) {
@@ -128,7 +130,6 @@ var server = http.createServer(function(request, response) {
 				response.end();
 			}
 		});
-
 	} else {
 		console.log("Invalid file extension detected: " + ext)
 	}
@@ -142,29 +143,75 @@ server.listen(webSocketsServerPort, function() {
 var wsServer = new WebSocketServer({ server: server });
 
 wsServer.on('connection', function connection(ws) {
-	ws.send(JSON.stringify({"type": "board", "message": chessSymbolsGame}));
-	ws.send(JSON.stringify({"type": "color", "message": lastMoveColor}));
-	ws.send(JSON.stringify({"type": "move", "message": lastMove}));
+	userId += 1
+	ws.info = {id: userId, face: faces[Math.floor(Math.random()*faces.length)]};
+	ws.send(JSON.stringify({"type": "game", "message": games}));
+	
+	// send user list to clients on new connection
+	wsServer.clients.forEach(function each(client) {
+		client.send(JSON.stringify({"type": "clients", "message": clientsList()}));
+	});
+	// ws.send(JSON.stringify({"type": "board", "message": chessSymbolsGame}));
+	// ws.send(JSON.stringify({"type": "color", "message": lastMoveColor}));
+	// ws.send(JSON.stringify({"type": "move", "message": lastMove}));
+
 	ws.on('message', function incoming(message) {
 		message = JSON.parse(message);
+
+		// send board to clients
 		if (message.type == 'board') {
-			chessSymbolsGame = message.message;
+			games[message.gameName].chessSymbolsGame = message.message;
 			wsServer.clients.forEach(function each(client) {
-				client.send(JSON.stringify({"type": "board", "message": chessSymbolsGame}));
+				client.send(JSON.stringify({"type": "board", "message": games[message.gameName].chessSymbolsGame}));
 			});
 		}
-		if (message.type == 'move') {
-			lastMove = message.message;
+
+		// send last move to clients
+		else if (message.type == 'move') {
+			games[message.gameName].lastMove = message.message;
 			wsServer.clients.forEach(function each(client) {
-				client.send(JSON.stringify({"type": "move", "message": lastMove}));
+				client.send(JSON.stringify({"type": "move", "message": games[message.gameName].lastMove}));
 			});
 		}
-		if (message.type == 'color') {
-			lastMoveColor = message.message;
+
+		// send last move color to clients
+		else if (message.type == 'color') {
+			games[message.gameName].lastMoveColor = message.message;
 			wsServer.clients.forEach(function each(client) {
-				client.send(JSON.stringify({"type": "color", "message": lastMoveColor}));
+				client.send(JSON.stringify({"type": "color", "message": games[message.gameName].lastMoveColor}));
 			});
 		}
+
+		// when new game created send games list to clients and board for first client
+		else if (message.type == 'createGame') {
+			games[message.message] = {"white": ws.info.id, "black": null, "observers": [], "chessSymbolsGame": chessSymbols, "lastMove": null, "lastMoveColor": "black"};
+			wsServer.clients.forEach(function each(client) {
+				client.send(JSON.stringify({"type": "newGame", "message": games}));
+			});
+			ws.send(JSON.stringify({"type": "userColor", "message": "white"}));
+			ws.send(JSON.stringify({"type": "board", "message": games[message.message].chessSymbolsGame}));
+			ws.send(JSON.stringify({"type": "color", "message": games[message.message].lastMoveColor}));
+		}
+		// else if (message.type == 'openGame') {
+			
+		// }
 	});
+
+	ws.on('close', function() {
+
+		// send user list to clients on close connection
+		wsServer.clients.forEach(function each(client) {
+			client.send(JSON.stringify({"type": "clients", "message": clientsList()}));
+		});
+	})
+
 });
 
+// create user list
+var clientsList = function() {
+	var clients = [];
+	wsServer.clients.forEach(function each(client) {
+		clients.push({id: client.info.id, face: client.info.face});
+	});
+	return clients;
+}

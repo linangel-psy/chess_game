@@ -1,6 +1,24 @@
+.hidden {
+	display: none;
+}
+button {
+	height: 25px;
+	border-radius: 5px;
+	border-color: #DBDBDB;
+	border-style: solid;
+	background: #FFFFFF;
+	color: #747575;
+	cursor: pointer;
+}
+.button-create {
+	border-color: #218001;
+	border-style: solid;
+	background: #29A300;
+	color: #FFFFFF;
+}
 .board-box {
 	height: 98vh;
-	width: 98vw;
+	padding-left: 50px;
 	display: flex;
 	flex-direction: column;
 	flex-direction: row;
@@ -14,7 +32,43 @@
 	-ms-user-select: none;
 	user-select: none;
 }
+.show-gamelist {
+	position: absolute;
+	top: 10px;
+	left: 10px;
+	cursor: pointer;
+	color: #736E6D;
+	font-size: 2rem;
+}
+.game-list-box {
+	position: fixed;
+	z-index: 5;
+	left: 0;
+	top: 0;
+	width: 200px;
+	height: 100vh;
+	background: #C2C2C2;
+}
+.show-popup {
+	margin: 5px;
+}
+.label {
+	font-weight: bold;
+}
+.game-link {
+	cursor: pointer;
+}
+.game-user {
+	margin-left: 30px;
+	cursor: default;
+	font-size: 0.7rem
+}
+.pic {
+	display: inline-block;
+	padding-right: 10px;
+}
 .board {
+	min-width: 710px;
 	font-size: 30px;
 	font-weight: bold;
 	border-collapse: collapse;
@@ -60,9 +114,63 @@
 	height: 100%;
 	z-index: 10;
 }
-.status-board {
-	width: 250px;
-	height: 250px;
+.status-box {
 	margin: 30px;
+}
+.move-message {
+	color: green;
+	font-weight: bold;
+	font-size: 1.2rem;
+}
+.status-board {
+	width: 220px;
+	height: 250px;
+	padding: 15px;
 	background: #C2C2C2;
+}
+.create-game-popup {
+	position: absolute;
+	width: 100vw;
+	height: 100vh;
+	position: fixed;
+	top: 0;
+	left: 0;
+	z-index: 10;
+	background: rgba(104, 104, 104, 0.8);
+}
+.popup-box {
+	position: relative;
+	margin: 0 auto;
+	top: 30vh;
+	padding: 20px;
+	width: 300px;
+	height: 110px;
+	background: #FFFFFF;
+	border-radius: 10px;
+	z-index: 15;
+}
+.popup-title {
+	margin-bottom: 10px;
+	border-bottom: 1px solid #000000;
+	font-weight: bold;
+}
+.close {
+	position: absolute;
+	top: 3px;
+	right: 5px;
+	font-size: 2.5rem;
+	cursor: pointer;
+}
+#gameName {
+	height: 20px;
+	font-size: 0.8rem;
+}
+.warning-message {
+	color: #FF0000;
+	font-style: italic;
+}
+.create-game {
+	position: absolute;
+	right: 25px;
+	bottom: 25px;
 }
