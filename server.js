@@ -145,12 +145,10 @@ var wsServer = new WebSocketServer({ server: server });
 wsServer.on('connection', function connection(ws) {
 	userId += 1
 	ws.info = {id: userId, face: faces[Math.floor(Math.random()*faces.length)]};
-	ws.send(JSON.stringify({"type": "game", "message": games}));
+	ws.send(JSON.stringify({"type": "newGame", "message": games}));
 	
 	// send user list to clients on new connection
-	wsServer.clients.forEach(function each(client) {
-		client.send(JSON.stringify({"type": "clients", "message": clientsList()}));
-	});
+	sendUsers();
 	// ws.send(JSON.stringify({"type": "board", "message": chessSymbolsGame}));
 	// ws.send(JSON.stringify({"type": "color", "message": lastMoveColor}));
 	// ws.send(JSON.stringify({"type": "move", "message": lastMove}));
@@ -176,6 +174,8 @@ wsServer.on('connection', function connection(ws) {
 
 		// send last move color to clients
 		else if (message.type == 'color') {
+			console.log(message);
+			console.log(games[message.gameName].lastMoveColor);
 			games[message.gameName].lastMoveColor = message.message;
 			wsServer.clients.forEach(function each(client) {
 				client.send(JSON.stringify({"type": "color", "message": games[message.gameName].lastMoveColor}));
@@ -185,27 +185,51 @@ wsServer.on('connection', function connection(ws) {
 		// when new game created send games list to clients and board for first client
 		else if (message.type == 'createGame') {
 			games[message.message] = {"white": ws.info.id, "black": null, "observers": [], "chessSymbolsGame": chessSymbols, "lastMove": null, "lastMoveColor": "black"};
-			wsServer.clients.forEach(function each(client) {
-				client.send(JSON.stringify({"type": "newGame", "message": games}));
-			});
+			sendGames();
 			ws.send(JSON.stringify({"type": "userColor", "message": "white"}));
 			ws.send(JSON.stringify({"type": "board", "message": games[message.message].chessSymbolsGame}));
 			ws.send(JSON.stringify({"type": "color", "message": games[message.message].lastMoveColor}));
 		}
-		// else if (message.type == 'openGame') {
-			
-		// }
+		else if (message.type == 'openGame') {
+			if (!games[message.message].black && games[message.message].white != ws.info.id) {
+				games[message.message].black = ws.info.id;
+				ws.send(JSON.stringify({"type": "userColor", "message": "black"}));
+			}
+			else if (!games[message.message].white && games[message.message].black != ws.info.id) {
+				games[message.message].white = ws.info.id;
+				ws.send(JSON.stringify({"type": "userColor", "message": "white"}));
+			}
+			else {
+				if (!games[message.message].observers[ws.info.id] && games[message.message].white != ws.info.id && games[message.message].black != ws.info.id) {
+					games[message.message].observers.push(ws.info.id);
+					ws.send(JSON.stringify({"type": "userColor", "message": null}));
+				}
+			}
+			ws.send(JSON.stringify({"type": "board", "message": games[message.message].chessSymbolsGame}));
+			ws.send(JSON.stringify({"type": "color", "message": games[message.message].lastMoveColor}));
+			sendGames();
+			sendUsers();
+		}
 	});
 
 	ws.on('close', function() {
 
 		// send user list to clients on close connection
-		wsServer.clients.forEach(function each(client) {
-			client.send(JSON.stringify({"type": "clients", "message": clientsList()}));
-		});
+		sendUsers();
 	})
 
 });
+
+var sendGames = function() {
+	wsServer.clients.forEach(function each(client) {
+		client.send(JSON.stringify({"type": "newGame", "message": games}));
+	});
+}
+var sendUsers = function() {
+	wsServer.clients.forEach(function each(client) {
+		client.send(JSON.stringify({"type": "clients", "message": clientsList()}));
+	});
+}
 
 // create user list
 var clientsList = function() {

@@ -73,7 +73,7 @@ $('.board-cell').mouseup(function() {
 	var name = $('.chess-symbol.active').data('name');
 	var newPosition = getElementByPosition(event.pageX, event.pageY);
 	if ($.inArray(newPosition, movesList) != -1) {
-
+		console.log(gameName);
 		// send last move color to server
 		var color = $('.chess-symbol.active').data('color');
 		ws.send(JSON.stringify({"type": "color", "gameName": gameName, "message": color}));
@@ -121,12 +121,15 @@ $('.board').mouseleave(function(e) {
 });
 
 // show/hide list of games and users
-$('.show-gamelist').click(function(e) {
+$('.show-gamelist').mouseover(function(e) {
 	$('.game-list-box').show('slow');
 });
 $('.close-userlist').click(function(e) {
 	$('.game-list-box').hide('slow');
 });
+$('.game-list-box').mouseleave(function(e) {
+	$('.game-list-box').hide('slow');
+})
 
 // show/hide pop-up to add new game
 $('.show-popup').click(function(e) {
@@ -152,11 +155,9 @@ $('#gameName').on('input', function(e) {
 });
 
 //open selected game
-$('.game-link').click(function(e) {
-	var name;
-	console.log(1);
-	console.log(e.target.id);
-	// ws.send(JSON.stringify({"type": "openGame", "message": name}));
+$('.game-list').click(function(e) {
+	var name = e.target.id;
+	ws.send(JSON.stringify({"type": "openGame", "message": name}));
 });
 
 //  set text on status board
