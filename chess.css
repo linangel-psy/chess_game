@@ -1,3 +1,11 @@
+body {
+	-webkit-touch-callout: none;
+	-webkit-user-select: none;
+	-khtml-user-select: none;
+	-moz-user-select: none;
+	-ms-user-select: none;
+	user-select: none;
+}
 .hidden {
 	display: none;
 }
@@ -64,13 +72,6 @@ button {
 	justify-content: space-between;
 	align-items: center;
 	cursor: default;
-	-webkit-touch-callout: none;
-	-webkit-user-select: none;
-	-khtml-user-select: none;
-	-moz-user-select: none;
-	-ms-user-select: none;
-	user-select: none;
-
 }
 .board {
 	min-width: 710px;
@@ -113,6 +114,9 @@ button {
 	left: 0;
 	right: 0;
 	background: rgba(0, 255, 0, 0.2);
+}
+.possible-captures {
+	background: red !important;
 }
 .chess-symbol {
 	width: 100%;
@@ -175,25 +179,4 @@ button {
 	position: absolute;
 	right: 25px;
 	bottom: 25px;
-}
-.tooltip {
-	position: relative;
-	display: inline-block;
-	border-bottom: 1px dotted black;
-}
-
-.tooltip .tooltiptext {
-	visibility: hidden;
-	width: 120px;
-	background-color: black;
-	color: #fff;
-	text-align: center;
-	border-radius: 6px;
-	padding: 5px 0;
-	position: absolute;
-	z-index: 1;
-}
-
-.tooltip:hover .tooltiptext {
-	visibility: visible;
 }

@@ -3,7 +3,7 @@ var size = 8;
 var letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
 var drag = false;
 var X, Y, lastCellClick, lastMoveColor, myColor, gameName;
-var movesList = [];
+var movesList = {};
 var chessSymbolsGame = {};
 
 //create chess board
@@ -48,9 +48,12 @@ $('.board-cell').mousedown(function() {
 		X = left - event.pageX;
 		$(event.target).css({'position': 'absolute', 'top': top, 'left': left}).addClass('active');
 		var possibleMovesIds = possibleMoves(cellId);
-		$.each(possibleMovesIds, function() {
+		$.each(possibleMovesIds.moves, function() {
 			$('#' + this + ':not(#' + cellId +')').addClass('possible-move');
-		})
+		});
+		$.each(possibleMovesIds.captures, function() {
+			$('#' + this + ':not(#' + cellId +')').addClass('possible-captures');
+		});
 	}
 	else {
 		var cellId = event.target.id;
@@ -72,31 +75,44 @@ $('.board-cell').mouseup(function() {
 	drag = false;
 	var name = $('.chess-symbol.active').data('name');
 	var newPosition = getElementByPosition(event.pageX, event.pageY);
-	if ($.inArray(newPosition, movesList) != -1) {
-		$('.chess-symbol.active').appendTo('#' + newPosition);
+	if ($.inArray(newPosition, movesList['moves']) != -1 || $.inArray(newPosition, movesList['captures']) != -1) {
 
 		// send last move color to server
 		var color = $('.chess-symbol.active').data('color');
 		ws.send(JSON.stringify({"type": "color", "gameName": gameName, "message": color}));
 
-		// send board to server
+		//create new board
 		var lastCellClickPos = $.inArray(lastCellClick, chessSymbolsGame[name].position);
 		if (lastCellClickPos != -1) {
+			// remove captured symbol
+			if ($('#' + newPosition).find('.chess-symbol').length != 0) {
+				var removeName = $('#' + newPosition).find('.chess-symbol').data('name');
+				var index = chessSymbolsGame[removeName].position.indexOf(newPosition);
+				chessSymbolsGame[removeName].position.splice(index, 1);
+				ws.send(JSON.stringify({"type": "captured", "gameName": gameName, "message": removeName}));
+			}
 			chessSymbolsGame[name].position[lastCellClickPos] = newPosition;
 		}
+
+		// send board to server
 		ws.send(JSON.stringify({"type": "board", "gameName": gameName, "message": chessSymbolsGame}));
 
 		// send last move to server
 		var lastMoveServer = {"name": name, "prevPosition": lastCellClick, "newPosition": newPosition}
 		ws.send(JSON.stringify({"type": "move", "gameName": gameName, "message": lastMoveServer}));
+
+		// board changes on client
+		$('#' + newPosition).remove('.chess-symbol');
+		$('.chess-symbol.active').appendTo('#' + newPosition);
 	}
 	else {
 		$('#' + lastCellClick).append($('.chess-symbol.active'));
-		movesList = [];
+		movesList = {};
 	}
 
 	$('.chess-symbol').removeAttr('style').removeClass('active');
 	$('.board-cell').removeClass('possible-move');
+	$('.board-cell').removeClass('possible-captures');
 });
 
 // on mousemove on chess board show mouse coordinates
@@ -177,7 +193,7 @@ var getElementByPosition = function(x, y) {
 
 // calculate possible moves
 var possibleMoves = function(id) {
-	movesList = [];
+	movesList = {moves: [], captures: []};
 	var idArr = id.split('');
 	var type = $('#' + id).find('.chess-symbol').data('type');
 	if (type === 'queen') {
@@ -188,7 +204,11 @@ var possibleMoves = function(id) {
 				var num = parseInt(idArr[1]) + directions[i][1] * j;
 				var newPosition = letters[letterNum] + num;
 				if (letterNum >= 0 && letterNum < size && num > 0 && $('#' + newPosition).find('.chess-symbol').length === 0) {
-					movesList.push(newPosition);
+					movesList['moves'].push(newPosition);
+				}
+				else if (letterNum >= 0 && letterNum < size && num > 0 && $('#' + newPosition).find('.chess-symbol').length != 0 && $('#' + newPosition).find('.chess-symbol').data('color') != myColor) {
+					movesList['captures'].push(newPosition);
+					break;
 				}
 				else {
 					break;
@@ -200,14 +220,21 @@ var possibleMoves = function(id) {
 		var color = $('#' + id).find('.chess-symbol').data('color');
 		var length = (idArr[1] === '2' || idArr[1] === '7') ? 2 : 1;
 		for (var i = 1; i <= length; i++) {
-			if (color === 'white') {
-				var newPosition = idArr[0] + (parseInt(idArr[1]) + i);
+			var newPosition = (color === 'white') ? idArr[0] + (parseInt(idArr[1]) + i) : idArr[0] + (parseInt(idArr[1]) - i);
+			if ($('#' + newPosition).find('.chess-symbol').length === 0) {
+				movesList['moves'].push(newPosition);
 			}
 			else {
-				var newPosition = idArr[0] + (parseInt(idArr[1]) - i);
+				break;
 			}
-			if ($('#' + newPosition).find('.chess-symbol').length === 0) {
-				movesList.push(newPosition);
+		}
+		var directions = (color === 'white') ? [[1, 1], [-1, 1]] : [[1, -1], [-1, -1]];
+		for (var i = 0; i < directions.length; i++) {
+			var letterNum = letters.indexOf(idArr[0]) + directions[i][0];
+			var num = parseInt(idArr[1]) + directions[i][1];
+			var newPosition = letters[letterNum] + num;
+			if (letterNum >= 0 && letterNum < size && num > 0 && $('#' + newPosition).find('.chess-symbol').length != 0 && $('#' + newPosition).find('.chess-symbol').data('color') != myColor) {
+				movesList['captures'].push(newPosition);
 			}
 		}
 	}
@@ -218,7 +245,10 @@ var possibleMoves = function(id) {
 			var num = parseInt(idArr[1]) + directions[i][1];
 			var newPosition = letters[letterNum] + num;
 			if (letterNum >= 0 && letterNum < size && num > 0 && $('#' + newPosition).find('.chess-symbol').length === 0) {
-				movesList.push(newPosition);
+				movesList['moves'].push(newPosition);
+			}
+			else if (letterNum >= 0 && letterNum < size && num > 0 && $('#' + newPosition).find('.chess-symbol').length != 0 && $('#' + newPosition).find('.chess-symbol').data('color') != myColor) {
+				movesList['captures'].push(newPosition);
 			}
 		}
 	}
@@ -230,7 +260,11 @@ var possibleMoves = function(id) {
 				var num = parseInt(idArr[1]) + directions[i][1] * j;
 				var newPosition = letters[letterNum] + num;
 				if (letterNum >= 0 && letterNum < size && num > 0 && $('#' + newPosition).find('.chess-symbol').length === 0) {
-					movesList.push(newPosition);
+					movesList['moves'].push(newPosition);
+				}
+				else if (letterNum >= 0 && letterNum < size && num > 0 && $('#' + newPosition).find('.chess-symbol').length != 0 && $('#' + newPosition).find('.chess-symbol').data('color') != myColor) {
+					movesList['captures'].push(newPosition);
+					break;
 				}
 				else {
 					break;
@@ -246,7 +280,11 @@ var possibleMoves = function(id) {
 				var num = parseInt(idArr[1]) + directions[i][1] * j;
 				var newPosition = letters[letterNum] + num;
 				if (letterNum >= 0 && letterNum < size && num > 0 && $('#' + newPosition).find('.chess-symbol').length === 0) {
-					movesList.push(newPosition);
+					movesList['moves'].push(newPosition);
+				}
+				else if (letterNum >= 0 && letterNum < size && num > 0 && $('#' + newPosition).find('.chess-symbol').length != 0 && $('#' + newPosition).find('.chess-symbol').data('color') != myColor) {
+					movesList['captures'].push(newPosition);
+					break;
 				}
 				else {
 					break;
@@ -261,17 +299,20 @@ var possibleMoves = function(id) {
 			var num = parseInt(idArr[1]) + directions[i][1];
 			var newPosition = letters[letterNum] + num;
 			if (letterNum >= 0 && letterNum < size && num > 0 && $('#' + newPosition).find('.chess-symbol').length === 0) {
-				movesList.push(newPosition);
+				movesList['moves'].push(newPosition);
+			}
+			else if (letterNum >= 0 && letterNum < size && num > 0 && $('#' + newPosition).find('.chess-symbol').length != 0 && $('#' + newPosition).find('.chess-symbol').data('color') != myColor) {
+				movesList['captures'].push(newPosition);
 			}
 		}
 	}
 	return movesList;
-}
+};
 
 // blinking text!
 var blink = function() {
 	$('.move-message').fadeTo('slow', 0.3).fadeTo('slow', 1.0);
-}
+};
 setInterval(function(){blink()}, 3000);
 
 // connection with server
@@ -310,6 +351,21 @@ var reconnect = function() {
 			setText(data);
 		}
 
+		else if (serverMessage.type == 'captured') {
+			$('.white-captured').html('');
+			if (serverMessage.message['white'].length > 0) {
+				$.each(serverMessage.message['white'], function() {
+					$('.white-captured').append('<span>' + this + '</span>');
+				});
+			}
+			$('.black-captured').html('');
+			if (serverMessage.message['black'].length > 0) {
+				$.each(serverMessage.message['black'], function() {
+					$('.black-captured').append('<span>' + this + '</span>');
+				});
+			}
+		}
+
 		// set color of last move from server message
 		else if (serverMessage.type == 'color') {
 			lastMoveColor = serverMessage.message;
@@ -318,7 +374,7 @@ var reconnect = function() {
 			}
 			else {
 				$('.move-message').html('');
-}
+			}
 		}
 
 		// show avaliable games from server message
@@ -354,6 +410,7 @@ var reconnect = function() {
 		// set user color in game from server message
 		else if (serverMessage.type === 'userColor') {
 			myColor = serverMessage.message;
+			console.log(myColor);
 			if (myColor) {
 				$('.user-role').html('You are ' + myColor + ' player');
 			}
@@ -365,6 +422,7 @@ var reconnect = function() {
 		// set name of the game from server message
 		else if (serverMessage.type === 'gameName') {
 			gameName = serverMessage.message;
+			console.log(gameName);
 			$('.game-label').html('Game: ' + serverMessage.message);
 		}
 		else if (serverMessage.type === 'nameError') {

@@ -166,6 +166,15 @@ wsServer.on('connection', function connection(ws) {
 			});
 		}
 
+		else if (message.type == 'captured') {
+			var color = chessSymbols[message.message].color;
+			var symbol = chessSymbols[message.message].symbol;
+			games[message.gameName].captured[color].push(symbol);
+			sendList(message.gameName).forEach(function each(client) {
+				client.send(JSON.stringify({"type": "captured", "message": games[message.gameName].captured}));
+			});
+		}
+
 		// send last move color to clients
 		else if (message.type == 'color') {
 			games[message.gameName].lastMoveColor = message.message;
@@ -177,9 +186,10 @@ wsServer.on('connection', function connection(ws) {
 		// when new game created send games list to clients and board for first client
 		else if (message.type == 'createGame') {
 			if (!(message.message in games)) {
-				games[message.message] = {"white": ws.info.id, "black": null, "observers": [], "chessSymbolsGame": chessSymbols, "lastMove": null, "lastMoveColor": "black"};
+				games[message.message] = {"white": ws.info.id, "black": null, "observers": [], "chessSymbolsGame": chessSymbols, "lastMove": null, "lastMoveColor": "black", "captured": {"white": [], "black": []}};
 				sendGames();
 				ws.send(JSON.stringify({"type": "userColor", "message": "white"}));
+				ws.send(JSON.stringify({"type": "gameName", "message": message.message}));
 				sendBoard(ws, message.message);				
 				clientsList();
 			}
@@ -188,31 +198,38 @@ wsServer.on('connection', function connection(ws) {
 			}
 		}
 		else if (message.type == 'openGame') {
-			if (!games[message.message].white && games[message.message].black != ws.info.id) {
-				games[message.message].white = ws.info.id;
-				ws.send(JSON.stringify({"type": "userColor", "message": "white"}));
-			}
-			else if (!games[message.message].black && games[message.message].white != ws.info.id) {
-				games[message.message].black = ws.info.id;
-				ws.send(JSON.stringify({"type": "userColor", "message": "black"}));
-			}
-			else {
-				if (games[message.message].observers.indexOf(ws.info.id) == -1 && games[message.message].white != ws.info.id && games[message.message].black != ws.info.id) {
-					games[message.message].observers.push(ws.info.id);
-					ws.send(JSON.stringify({"type": "userColor", "message": null}));
+			if (canOpenGame(ws, message.message)) {
+				clientsList();
+				sendUsers();
+				sendBoard(ws, message.message);
+				ws.send(JSON.stringify({"type": "move", "message": games[message.message].lastMove}));
+				ws.send(JSON.stringify({"type": "gameName", "message": message.message}));
+				ws.send(JSON.stringify({"type": "color", "message": games[message.message].lastMoveColor}));
+				ws.send(JSON.stringify({"type": "captured", "message": games[message.message].captured}));
+
+				if (!games[message.message].white && games[message.message].black != ws.info.id) {
+					games[message.message].white = ws.info.id;
+					ws.send(JSON.stringify({"type": "userColor", "message": "white"}));
 				}
+				else if (!games[message.message].black && games[message.message].white != ws.info.id) {
+					games[message.message].black = ws.info.id;
+					ws.send(JSON.stringify({"type": "userColor", "message": "black"}));
+				}
+				else {
+					if (games[message.message].observers.indexOf(ws.info.id) == -1 && games[message.message].white != ws.info.id && games[message.message].black != ws.info.id) {
+						games[message.message].observers.push(ws.info.id);
+						ws.send(JSON.stringify({"type": "userColor", "message": null}));
+					}
+				}
+				sendGames();
 			}
-			clientsList();
-			sendBoard(ws, message.message);
-			ws.send(JSON.stringify({"type": "gameName", "message": message.message}));
-			sendGames();
-			sendUsers();
 		}
 	});
 
 	ws.on('close', function() {
 		var id = ws.info.id;
 		clientsList();
+		sendUsers();
 		for (var key in games) {
 			if (games[key].white === id) {
 				games[key].white = null;
@@ -228,13 +245,12 @@ wsServer.on('connection', function connection(ws) {
 				sendList(key).forEach(function each(client) {
 					client.send(JSON.stringify({"type": "board", "message": {}}));
 					client.send(JSON.stringify({"type": "move", "message": null}));
+					client.send(JSON.stringify({"type": "captured", "message": {"white": [], "black": []}}));
 				});
 				delete games[key];
-
 			}
-		}
-		sendUsers();
 		sendGames();
+		}
 	})
 
 });
@@ -268,6 +284,15 @@ var sendUsers = function() {
 	wsServer.clients.forEach(function each(client) {
 		client.send(JSON.stringify({"type": "clients", "message": clientsList()}));
 	});
+}
+var canOpenGame = function(ws, gameName) {
+	var list = sendList(gameName);
+	for (var i = 0; i < list.length; i++) {
+		if (ws === list[i]){
+			return false;
+		}
+	}
+	return true;
 }
 
 // create user list
