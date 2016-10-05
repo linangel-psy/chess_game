@@ -134,7 +134,6 @@ $('.create-game').click(function(e) {
 	gameName = $('#gameName').val();
 	if (gameName) {
 		ws.send(JSON.stringify({"type": "createGame", "message": gameName}));
-		$('.create-game-popup').addClass('hidden');
 	}
 	else {
 		$('.warning-message').text('Enter game name');
@@ -199,14 +198,17 @@ var possibleMoves = function(id) {
 	}
 	else if (type === 'pawn') {
 		var color = $('#' + id).find('.chess-symbol').data('color');
-		if (color === 'white') {
-			var newPosition = idArr[0] + (parseInt(idArr[1]) + 1);
-		}
-		else {
-			var newPosition = idArr[0] + (parseInt(idArr[1]) - 1);
-		}
-		if ($('#' + newPosition).find('.chess-symbol').length === 0) {
-			movesList.push(newPosition);
+		var length = (idArr[1] === '2' || idArr[1] === '7') ? 2 : 1;
+		for (var i = 1; i <= length; i++) {
+			if (color === 'white') {
+				var newPosition = idArr[0] + (parseInt(idArr[1]) + i);
+			}
+			else {
+				var newPosition = idArr[0] + (parseInt(idArr[1]) - i);
+			}
+			if ($('#' + newPosition).find('.chess-symbol').length === 0) {
+				movesList.push(newPosition);
+			}
 		}
 	}
 	else if (type === 'knight') {
@@ -291,12 +293,20 @@ var reconnect = function() {
 
 		// set text on status board from server message
 		else if (serverMessage.type == 'move') {
-			var lastMove = serverMessage.message['name'] + ': ' + 
-				serverMessage.message['prevPosition'] + ' - ' + 
-				serverMessage.message['newPosition'];
-			var lastClick = serverMessage.message['name'] + ': ' + 
-				serverMessage.message['prevPosition'];
-			var data = [{'.last-move': lastMove}, {'.click-cell': lastClick}];
+			if (serverMessage.message) {
+				var lastMove = serverMessage.message['name'] + ': ' + 
+					serverMessage.message['prevPosition'] + ' - ' + 
+					serverMessage.message['newPosition'];
+				var lastClick = serverMessage.message['name'] + ': ' + 
+					serverMessage.message['prevPosition'];
+				var data = [{'.last-move': lastMove}, {'.click-cell': lastClick}];
+			}
+			// clear status board if game was deleted
+			else {
+				var data = [{'.last-move': ''}, {'.click-cell': ''}];
+				$('.game-label').html('');
+				$('.user-role').html('');
+			}
 			setText(data);
 		}
 
@@ -313,6 +323,7 @@ var reconnect = function() {
 
 		// show avaliable games from server message
 		else if (serverMessage.type === 'newGame') {
+			$('.create-game-popup').addClass('hidden');
 			$('.game-list').html('');
 			$.each(serverMessage.message, function(name, value) {
 				$('.game-list').append('<div class="game-link" id="' + name + '"><span class="pic">&#127937;</span>' + name + '</div>');
@@ -343,12 +354,21 @@ var reconnect = function() {
 		// set user color in game from server message
 		else if (serverMessage.type === 'userColor') {
 			myColor = serverMessage.message;
+			if (myColor) {
+				$('.user-role').html('You are ' + myColor + ' player');
+			}
+			else {
+				$('.user-role').html('You are an observer');
+			}
 		}
+
+		// set name of the game from server message
 		else if (serverMessage.type === 'gameName') {
 			gameName = serverMessage.message;
+			$('.game-label').html('Game: ' + serverMessage.message);
 		}
-		else if (serverMessage.type === 'error') {
-			alert(serverMessage.message);
+		else if (serverMessage.type === 'nameError') {
+			$('.warning-message').text(serverMessage.message);
 		}
 	};
 }();

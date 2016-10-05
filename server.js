@@ -180,11 +180,11 @@ wsServer.on('connection', function connection(ws) {
 				games[message.message] = {"white": ws.info.id, "black": null, "observers": [], "chessSymbolsGame": chessSymbols, "lastMove": null, "lastMoveColor": "black"};
 				sendGames();
 				ws.send(JSON.stringify({"type": "userColor", "message": "white"}));
-				sendBoard(ws, message.message);
+				sendBoard(ws, message.message);				
 				clientsList();
 			}
 			else {
-				ws.send(JSON.stringify({"type": "error", "message": "Game with this name exists"}));
+				ws.send(JSON.stringify({"type": "nameError", "message": "Game with this name exists"}));
 			}
 		}
 		else if (message.type == 'openGame') {
@@ -225,7 +225,12 @@ wsServer.on('connection', function connection(ws) {
 				games[key].observers.splice(index, 1);
 			}
 			if (games[key].white === null && games[key].black === null) {
+				sendList(key).forEach(function each(client) {
+					client.send(JSON.stringify({"type": "board", "message": {}}));
+					client.send(JSON.stringify({"type": "move", "message": null}));
+				});
 				delete games[key];
+
 			}
 		}
 		sendUsers();
