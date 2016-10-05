@@ -73,6 +73,8 @@ $('.board-cell').mouseup(function() {
 	var name = $('.chess-symbol.active').data('name');
 	var newPosition = getElementByPosition(event.pageX, event.pageY);
 	if ($.inArray(newPosition, movesList) != -1) {
+		$('.chess-symbol.active').appendTo('#' + newPosition);
+
 		// send last move color to server
 		var color = $('.chess-symbol.active').data('color');
 		ws.send(JSON.stringify({"type": "color", "gameName": gameName, "message": color}));
