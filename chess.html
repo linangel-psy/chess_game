@@ -7,36 +7,24 @@
 	</head>
 	<body>
 		<div class="game-list-box">
-			<button class="button-create show-popup">Create game</button>
-			<div class="label">Open games</div>
+			<input type="text" name="game-name" id="gameName" placeholder="Enter game name">
+			<button class="create-game">Create Game</button>
+			<div class="warning-message"></div>
+			<div class="label">Games</div>
+			<div>(click the game to join)</div>
 			<div class="game-list"></div>
 			<div class="label">Users</div>
 			<div class="users-list"></div>
 		</div>
 		<div class="board-box">
 			<table class="board"></table>
-			<div class="status-box">
-				<div class="game-label"></div>
-				<div class="user-role"></div>
-				<div class="move-message"></div>
-				<div class="status-board">
-					<p>Was clicked: <span class="click-cell"></span></p>
-					<p>Mouse on coordinates: <span class="coordinates"></span></p>
-					<p>Mouse on cell: <span class="move-cell"></span></p>
-					<p>Last move: <span class="last-move"></span></p>
-					<p>White captured: <span class="white-captured"></span></p>
-					<p>Black captured: <span class="black-captured"></span></p>
-				</div>
-			</div>
 		</div>
-		<div class="create-game-popup hidden">
-			<div class="popup-box">
-				<div class="popup-title">New game creation</div>
-				<div class="close close-popup">&#735;</div>
-				<label for="gameName">Game name <input type="text" name="game-name" id="gameName" placeholder="Enter game name"></label>
-				<div class="warning-message"></div>
-				<button class="button-create create-game">Create Game</button>
-			</div>
+		<div class="status-board-box">
+			<div class="game-label"></div>
+			<div class="user-role"></div>
+			<div class="move-message"></div>
+			<div class="line"></div>
+			<table class="status-board"></table>
 		</div>
 		<script src="chess.js"></script>
 	</body>

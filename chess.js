@@ -24,6 +24,21 @@ for (var i = size; i >= 0; i--) {
 	}
 };
 
+// create status board
+var createStatusBoard = function(moves) {
+	$('.status-board').html('');
+	if (moves) {
+		var length = moves['white'].length;
+		for (var i = 1; i <= length; i++) {
+			var black = moves.black[i - 1] || '';
+			$('.status-board').append('<tr class="status-board-row row_' + i + '"></tr>');
+			$('.row_' + i).append('<td class="status-board-cell cell-num">'  + i + '</td>');
+			$('.row_' + i).append('<td class="status-board-cell">' + moves.white[i - 1] + '</td>');
+			$('.row_' + i).append('<td class="status-board-cell cell-black">' + black + '</td>');
+		}
+	}
+}
+
 // symbols on board
 var setSymbols = function() {
 	$('.board-cell').html('');
@@ -38,7 +53,6 @@ var setSymbols = function() {
 // on mousedown on chess board show possible moves
 $('.board-cell').mousedown(function() {
 	drag = true;
-	var data = [];
 	if ($(event.target).hasClass('chess-symbol') && $(event.target).data('color') != lastMoveColor && $(event.target).data('color') != '' && $(event.target).data('color') == myColor) {
 		var cellId = $(event.target).parent('.board-cell')[0].id;
 		var symbolId = $(event.target).data('name');
@@ -59,14 +73,6 @@ $('.board-cell').mousedown(function() {
 		var cellId = event.target.id;
 		var symbolId = '';
 	}
-	data.push({'.coordinates': event.pageX + ', ' + event.pageY}, {'.move-cell': cellId});
-	if (symbolId != '') {
-		data.push({'.click-cell': symbolId + ' on ' + cellId});
-	}
-	else {
-		data.push({'.click-cell': cellId});
-	}
-	setText(data);
 	lastCellClick = cellId;
 });
 
@@ -75,6 +81,7 @@ $('.board-cell').mouseup(function() {
 	drag = false;
 	var name = $('.chess-symbol.active').data('name');
 	var newPosition = getElementByPosition(event.pageX, event.pageY);
+	var captured = ''
 	if ($.inArray(newPosition, movesList['moves']) != -1 || $.inArray(newPosition, movesList['captures']) != -1) {
 
 		// send last move color to server
@@ -89,7 +96,7 @@ $('.board-cell').mouseup(function() {
 				var removeName = $('#' + newPosition).find('.chess-symbol').data('name');
 				var index = chessSymbolsGame[removeName].position.indexOf(newPosition);
 				chessSymbolsGame[removeName].position.splice(index, 1);
-				ws.send(JSON.stringify({"type": "captured", "gameName": gameName, "message": removeName}));
+				captured = 'x'
 			}
 			chessSymbolsGame[name].position[lastCellClickPos] = newPosition;
 		}
@@ -98,7 +105,7 @@ $('.board-cell').mouseup(function() {
 		ws.send(JSON.stringify({"type": "board", "gameName": gameName, "message": chessSymbolsGame}));
 
 		// send last move to server
-		var lastMoveServer = {"name": name, "prevPosition": lastCellClick, "newPosition": newPosition}
+		var lastMoveServer = {"name": name, "newPosition": newPosition, "captured": captured};
 		ws.send(JSON.stringify({"type": "move", "gameName": gameName, "message": lastMoveServer}));
 
 		// board changes on client
@@ -115,34 +122,14 @@ $('.board-cell').mouseup(function() {
 	$('.board-cell').removeClass('possible-captures');
 });
 
-// on mousemove on chess board show mouse coordinates
+// on mousemove move symbol
 $('.board-cell').mousemove(function(e) {
-	var data = [];
-	if (drag) {
-		var cellId = getElementByPosition(event.pageX, event.pageY);
-		data.push({'.coordinates': event.pageX + ', ' + event.pageY}, {'.move-cell': cellId});
-	}
-	else {
-		data.push({'.coordinates': ''}, {'.move-cell': ''});
-	}
-	setText(data);
 	$('.chess-symbol.active').css({'top': event.pageY + Y, 'left': event.pageX + X});
 });
 
 // on mouseleave from chess board stop symbol moving
 $('.board').mouseleave(function(e) {
 	drag = false;
-	var data = [];
-	data.push({'.coordinates': ''}, {'.move-cell': ''});
-	setText(data);
-});
-
-// show/hide pop-up to add new game
-$('.show-popup').click(function(e) {
-	$('.create-game-popup').removeClass('hidden');
-});
-$('.close-popup').click(function(e) {
-	$('.create-game-popup').addClass('hidden');
 });
 
 // create new game and send to server or show/hide warning message
@@ -164,15 +151,6 @@ $('.game-list').click(function(e) {
 	var name = e.target.id || $(e.target).parent()[0].id;
 	ws.send(JSON.stringify({"type": "openGame", "message": name}));
 });
-
-//  set text on status board
-var setText = function(data) {
-	$.each(data, function(index, value) {
-		$.each(value, function(className, text) {
-			$(className).text(text);
-		})	
-	})
-};
 
 // get id of element by mouse position
 var getElementByPosition = function(x, y) {
@@ -334,36 +312,7 @@ var reconnect = function() {
 
 		// set text on status board from server message
 		else if (serverMessage.type == 'move') {
-			if (serverMessage.message) {
-				var lastMove = serverMessage.message['name'] + ': ' + 
-					serverMessage.message['prevPosition'] + ' - ' + 
-					serverMessage.message['newPosition'];
-				var lastClick = serverMessage.message['name'] + ': ' + 
-					serverMessage.message['prevPosition'];
-				var data = [{'.last-move': lastMove}, {'.click-cell': lastClick}];
-			}
-			// clear status board if game was deleted
-			else {
-				var data = [{'.last-move': ''}, {'.click-cell': ''}];
-				$('.game-label').html('');
-				$('.user-role').html('');
-			}
-			setText(data);
-		}
-
-		else if (serverMessage.type == 'captured') {
-			$('.white-captured').html('');
-			if (serverMessage.message['white'].length > 0) {
-				$.each(serverMessage.message['white'], function() {
-					$('.white-captured').append('<span>' + this + '</span>');
-				});
-			}
-			$('.black-captured').html('');
-			if (serverMessage.message['black'].length > 0) {
-				$.each(serverMessage.message['black'], function() {
-					$('.black-captured').append('<span>' + this + '</span>');
-				});
-			}
+			createStatusBoard(serverMessage.message)
 		}
 
 		// set color of last move from server message
@@ -410,7 +359,6 @@ var reconnect = function() {
 		// set user color in game from server message
 		else if (serverMessage.type === 'userColor') {
 			myColor = serverMessage.message;
-			console.log(myColor);
 			if (myColor) {
 				$('.user-role').html('You are ' + myColor + ' player');
 			}
@@ -422,8 +370,14 @@ var reconnect = function() {
 		// set name of the game from server message
 		else if (serverMessage.type === 'gameName') {
 			gameName = serverMessage.message;
-			console.log(gameName);
-			$('.game-label').html('Game: ' + serverMessage.message);
+			if (gameName) {
+				$('.game-label').html('Game: ' + serverMessage.message);
+				$('#gameName').val('');
+			}
+			else {
+				$('.game-label').html('');
+				$('.user-role').html('');
+			}
 		}
 		else if (serverMessage.type === 'nameError') {
 			$('.warning-message').text(serverMessage.message);

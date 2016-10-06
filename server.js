@@ -6,8 +6,6 @@ var WebSocketServer = require('ws').Server;
 var http = require('http');
 var path = require("path"); 
 var fs = require('fs');
-var lastMoveColor = '';
-var lastMove = {};
 var games = {};
 var userId = 0;
 var faces = ['&#128045;', '&#128046;', '&#128047;', '&#128048;', '&#128049;', '&#128054;', '&#128053;', '&#128055;', '&#128056;', '&#128057;', '&#128059;', '&#128060;', '&#128052;'];
@@ -16,36 +14,42 @@ var chessSymbols = {
 	"White Queen": {
 		"symbol": "\u2655",
 		"type": "queen",
+		"short": "Q",
 		"color": "white",
 		"position": ["D1"]
 	},
 	"White Pawn": {
 		"symbol": "\u2659",
 		"type": "pawn",
+		"short": "",
 		"color": "white",
 		"position": ["A2", "B2", "C2", "D2", "E2", "F2", "G2", "H2"]
 	},
 	"White Knight": {
 		"symbol": "\u2658",
 		"type": "knight",
+		"short": "N",
 		"color": "white",
 		"position": ["B1", "G1"]
 	},
 	"White Bishop": {
 		"symbol": "\u2657",
 		"type": "bishop",
+		"short": "B",
 		"color": "white",
 		"position": ["C1", "F1"]
 	},
 	"White Rook": {
 		"symbol": "\u2656",
 		"type": "rook",
+		"short": "R",
 		"color": "white",
 		"position": ["A1", "H1"]
 	},
 	"White King": {
 		"symbol": "\u2654",
 		"type": "king",
+		"short": "K",
 		"color": "white",
 		"position": ["E1"]
 	},
@@ -53,36 +57,42 @@ var chessSymbols = {
 	"Black Queen": {
 		"symbol": "\u265B",
 		"type": "queen",
+		"short": "Q",
 		"color": "black",
 		"position": ["D8"]
 	},
 	"Black Pawn": {
 		"symbol": "\u265F",
 		"type": "pawn",
+		"short": "",
 		"color": "black",
 		"position": ["A7", "B7", "C7", "D7", "E7", "F7", "G7", "H7"]
 	},
 	"Black Knight": {
 		"symbol": "\u265E",
 		"type": "knight",
+		"short": "N",
 		"color": "black",
 		"position": ["B8", "G8"]
 	},
 	"Black Bishop": {
 		"symbol": "\u265D",
 		"type": "bishop",
+		"short": "B",
 		"color": "black",
 		"position": ["C8", "F8"]
 	},
 	"Black Rook": {
 		"symbol": "\u265C",
 		"type": "rook",
+		"short": "R",
 		"color": "black",
 		"position": ["A8", "H8"]
 	},
 	"Black King": {
 		"symbol": "\u265A",
 		"type": "king",
+		"short": "K",
 		"color": "black",
 		"position": ["E8"]
 	},
@@ -158,20 +168,13 @@ wsServer.on('connection', function connection(ws) {
 			});
 		}
 
-		// send last move to clients
+		// send last move to clients message = {"name": name, "newPosition": newPosition}
 		else if (message.type == 'move') {
-			games[message.gameName].lastMove = message.message;
+			var color = chessSymbols[message.message.name].color;
+			var short = chessSymbols[message.message.name].short;
+			games[message.gameName].moves[color].push(short + message.message.captured + message.message.newPosition);
 			sendList(message.gameName).forEach(function each(client) {
-				client.send(JSON.stringify({"type": "move", "message": games[message.gameName].lastMove}));
-			});
-		}
-
-		else if (message.type == 'captured') {
-			var color = chessSymbols[message.message].color;
-			var symbol = chessSymbols[message.message].symbol;
-			games[message.gameName].captured[color].push(symbol);
-			sendList(message.gameName).forEach(function each(client) {
-				client.send(JSON.stringify({"type": "captured", "message": games[message.gameName].captured}));
+				client.send(JSON.stringify({"type": "move", "message": games[message.gameName].moves}));
 			});
 		}
 
@@ -186,7 +189,7 @@ wsServer.on('connection', function connection(ws) {
 		// when new game created send games list to clients and board for first client
 		else if (message.type == 'createGame') {
 			if (!(message.message in games)) {
-				games[message.message] = {"white": ws.info.id, "black": null, "observers": [], "chessSymbolsGame": chessSymbols, "lastMove": null, "lastMoveColor": "black", "captured": {"white": [], "black": []}};
+				games[message.message] = {"white": ws.info.id, "black": null, "observers": [], "chessSymbolsGame": chessSymbols, "moves": {"white": [], "black": []}, "lastMoveColor": "black"};
 				sendGames();
 				ws.send(JSON.stringify({"type": "userColor", "message": "white"}));
 				ws.send(JSON.stringify({"type": "gameName", "message": message.message}));
@@ -202,10 +205,8 @@ wsServer.on('connection', function connection(ws) {
 				clientsList();
 				sendUsers();
 				sendBoard(ws, message.message);
-				ws.send(JSON.stringify({"type": "move", "message": games[message.message].lastMove}));
 				ws.send(JSON.stringify({"type": "gameName", "message": message.message}));
-				ws.send(JSON.stringify({"type": "color", "message": games[message.message].lastMoveColor}));
-				ws.send(JSON.stringify({"type": "captured", "message": games[message.message].captured}));
+				ws.send(JSON.stringify({"type": "move", "message": games[message.message].moves}));
 
 				if (!games[message.message].white && games[message.message].black != ws.info.id) {
 					games[message.message].white = ws.info.id;
@@ -221,6 +222,7 @@ wsServer.on('connection', function connection(ws) {
 						ws.send(JSON.stringify({"type": "userColor", "message": null}));
 					}
 				}
+				ws.send(JSON.stringify({"type": "color", "message": games[message.message].lastMoveColor}));
 				sendGames();
 			}
 		}
@@ -245,7 +247,7 @@ wsServer.on('connection', function connection(ws) {
 				sendList(key).forEach(function each(client) {
 					client.send(JSON.stringify({"type": "board", "message": {}}));
 					client.send(JSON.stringify({"type": "move", "message": null}));
-					client.send(JSON.stringify({"type": "captured", "message": {"white": [], "black": []}}));
+					client.send(JSON.stringify({"type": "gameName", "message": null}));
 				});
 				delete games[key];
 			}

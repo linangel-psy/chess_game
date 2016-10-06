@@ -1,4 +1,5 @@
 body {
+	min-width: 1180px;
 	-webkit-touch-callout: none;
 	-webkit-user-select: none;
 	-khtml-user-select: none;
@@ -10,7 +11,7 @@ body {
 	display: none;
 }
 button {
-	height: 25px;
+	height: 26px;
 	border-radius: 5px;
 	border-color: #DBDBDB;
 	border-style: solid;
@@ -18,7 +19,26 @@ button {
 	color: #747575;
 	cursor: pointer;
 }
-.button-create {
+table {
+	border-collapse: collapse;
+}
+#gameName {
+	display: inline-block;
+	height: 20px;
+	width: 115px;
+	font-size: 0.8rem;
+}
+.warning-message {
+	color: #FF0000;
+	font-style: italic;
+}
+.create-game {
+	display: inline-block;
+	width: 75px;
+	padding: 1px;
+	border-radius: 0 5px 5px 0;
+	margin-left: -4px;
+	margin-top: 1px;
 	border-color: #218001;
 	border-style: solid;
 	background: #29A300;
@@ -40,9 +60,7 @@ button {
 	width: 200px;
 	height: 100vh;
 	background: #C2C2C2;
-}
-.show-popup {
-	margin: 5px;
+	overflow-y: auto;
 }
 .label {
 	font-weight: bold;
@@ -59,25 +77,18 @@ button {
 	display: inline-block;
 	padding-right: 10px;
 }
-.game-label {
-	font-size: 1.5rem;
-	font-weight: bold;
-}
 .board-box {
-	height: 98vh;
-	padding-left: 200px;
-	display: flex;
-	flex-direction: row;
-	-webkit-justify-content: space-between;
-	justify-content: space-between;
-	align-items: center;
+	width: 730px;
+	margin: 0 auto;
 	cursor: default;
+	padding-left: 200px;
+	padding-right: 250px;
 }
 .board {
+	margin-top: 50px;
 	min-width: 710px;
 	font-size: 30px;
 	font-weight: bold;
-	border-collapse: collapse;
 }
 .board-row:nth-child(odd) > .board-cell:nth-child(odd), .board-row:nth-child(even) > .board-cell:nth-child(even) {
 	background: #736E6D;
@@ -101,6 +112,11 @@ button {
 .board-cell.active {
 	background-color: red;
 }
+.chess-symbol {
+	width: 100%;
+	height: 100%;
+	z-index: 10;
+}
 .possible-move {
 	position: relative;
 }
@@ -115,68 +131,59 @@ button {
 	right: 0;
 	background: rgba(0, 255, 0, 0.2);
 }
-.possible-captures {
-	background: red !important;
-}
-.chess-symbol {
-	width: 100%;
-	height: 100%;
+.possible-captures:after {
+	content: " ";
 	z-index: 10;
+	display: block;
+	position: absolute;
+	height: 100%;
+	width: 100%;
+	top: 0;
+	left: 0;
+	right: 0;
+	background: rgba(255, 0, 0, 0.2);
 }
 .move-message {
 	color: green;
 	font-weight: bold;
 	font-size: 1.2rem;
+	height: 20px;
 }
-.status-board {
-	width: 220px;
-	height: 250px;
-	padding: 15px;
-	background: #C2C2C2;
-}
-.create-game-popup {
-	position: absolute;
-	width: 100vw;
-	height: 100vh;
+.status-board-box {
 	position: fixed;
+	z-index: 5;
+	right: 0;
 	top: 0;
-	left: 0;
-	z-index: 10;
-	background: rgba(104, 104, 104, 0.8);
+	width: 250px;
+	height: 100vh;
+	background: #C2C2C2;
+	padding-left: 15px;
+	overflow-y: auto;
 }
-.popup-box {
-	position: relative;
-	margin: 0 auto;
-	top: 30vh;
-	padding: 20px;
-	width: 300px;
-	height: 110px;
-	background: #FFFFFF;
-	border-radius: 10px;
-	z-index: 15;
-}
-.popup-title {
-	margin-bottom: 10px;
-	border-bottom: 1px solid #000000;
+.game-label {
+	font-size: 1.5rem;
 	font-weight: bold;
 }
-.close {
-	position: absolute;
-	top: 3px;
-	right: 5px;
-	font-size: 2.5rem;
-	cursor: pointer;
+.line {
+	width: 250px;
+	height: 2px;
+	background: #000000;
+	margin: 20px 0;
 }
-#gameName {
+.status-board-cell {
+	border: 1px solid #736E6D;
+	padding: 0;
+	width: 100px;
 	height: 20px;
-	font-size: 0.8rem;
+	text-align: center;
+	vertical-align: middle;
+	position: relative;
 }
-.warning-message {
-	color: #FF0000;
-	font-style: italic;
+.cell-num {
+	width: 30px;
 }
-.create-game {
-	position: absolute;
-	right: 25px;
-	bottom: 25px;
+.cell-black {
+	border: 1px solid #736E6D;
+	background: #000000;
+	color: #FFFFFF;
 }
