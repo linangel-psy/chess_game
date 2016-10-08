@@ -293,19 +293,50 @@ var blink = function() {
 };
 setInterval(function(){blink()}, 3000);
 
+// 
+var setCookie = function(name, value) {
+	deleteCookie(name);
+	document.cookie = name + '=' + value;
+};
+var deleteCookie = function(name) {
+	document.cookie = name + '=; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+};
+var getCookie = function(name) {
+	var x, y;
+	var cookiesArr = document.cookie.split(";");
+
+	for (var i = 0;i < cookiesArr.length; i++) {
+		x = cookiesArr[i].substr(0, cookiesArr[i].indexOf("="));
+		y = cookiesArr[i].substr(cookiesArr[i].indexOf("=") + 1);
+		x = x.replace(/^\s+|\s+$/g,"");
+		if (x == name) {
+			return unescape(y);
+		}
+	}
+	return null;
+};
+
 // connection with server
 var reconnect = function() {
 	var url = 'ws://' + location.host + '/ws';
 	ws = new WebSocket(url);
 	ws.onopen = function(ev) {
-		
+		var name = getCookie('gameName')
+		if (name) {
+			ws.send(JSON.stringify({"type": "openGame", "message": name}));
+		}
 	};
 
 	ws.onmessage = function(ev) {
 		var serverMessage = (JSON.parse(ev.data));
 
 		// set symbols on board from server message
-		if (serverMessage.type == 'board') {
+		if (serverMessage.type == 'userName') {
+			$.each(serverMessage.message, function(name, value) {
+				setCookie(name, value);
+			});
+		}
+		else if (serverMessage.type == 'board') {
 			chessSymbolsGame = serverMessage.message;
 			setSymbols();
 		}
@@ -328,7 +359,6 @@ var reconnect = function() {
 
 		// show avaliable games from server message
 		else if (serverMessage.type === 'newGame') {
-			$('.create-game-popup').addClass('hidden');
 			$('.game-list').html('');
 			$.each(serverMessage.message, function(name, value) {
 				$('.game-list').append('<div class="game-link" id="' + name + '"><span class="pic">&#127937;</span>' + name + '</div>');
@@ -373,10 +403,12 @@ var reconnect = function() {
 			if (gameName) {
 				$('.game-label').html('Game: ' + serverMessage.message);
 				$('#gameName').val('');
+				setCookie('gameName', gameName);
 			}
 			else {
 				$('.game-label').html('');
 				$('.user-role').html('');
+				setCookie('gameName', '');
 			}
 		}
 		else if (serverMessage.type === 'nameError') {
@@ -384,3 +416,5 @@ var reconnect = function() {
 		}
 	};
 }();
+
+//document.cookie.split(";").forEach(function(c) { document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); });
