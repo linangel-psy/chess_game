@@ -7,7 +7,6 @@ var http = require('http');
 var path = require("path"); 
 var fs = require('fs');
 var games = {};
-var userId = 0;
 var faces = ['&#128045;', '&#128046;', '&#128047;', '&#128048;', '&#128049;', '&#128054;', '&#128053;', '&#128055;', '&#128056;', '&#128057;', '&#128059;', '&#128060;', '&#128052;'];
 
 var chessSymbols = {
@@ -154,9 +153,9 @@ wsServer.on('connection', function connection(ws) {
 		var face = parseCookie('face', ws.upgradeReq.headers.cookie);
 	}
 	else {
-		userId += 1
+		var userId = randomId();
 		var id = 'user_' + userId;
-		var face = faces[Math.floor(Math.random()*faces.length)]
+		var face = faces[Math.floor(Math.random() * faces.length)]
 	}
 
 	// send user list to clients on new connection
@@ -170,39 +169,42 @@ wsServer.on('connection', function connection(ws) {
 
 		// send board to clients
 		if (message.type == 'board') {
-			games[message.gameName].chessSymbolsGame = message.message;
+			var gn = games[message.gameName];
+			gn.chessSymbolsGame = message.message;
 			sendList(message.gameName).forEach(function each(client) {
-				client.send(JSON.stringify({"type": "board", "message": games[message.gameName].chessSymbolsGame}));
+				client.send(JSON.stringify({"type": "board", "message": gn.chessSymbolsGame}));
 			});
 		}
 
 		// send last move to clients message = {"name": name, "newPosition": newPosition}
 		else if (message.type == 'move') {
+			var gn = games[message.gameName];
 			var color = chessSymbols[message.message.name].color;
 			var short = chessSymbols[message.message.name].short;
-			games[message.gameName].moves[color].push(short + message.message.captured + message.message.newPosition);
+			gn.moves[color].push(short + message.message.captured + message.message.newPosition);
 			sendList(message.gameName).forEach(function each(client) {
-				client.send(JSON.stringify({"type": "move", "message": games[message.gameName].moves}));
+				client.send(JSON.stringify({"type": "move", "message": gn.moves}));
 			});
 		}
 
 		// send last move color to clients
 		else if (message.type == 'color') {
-			games[message.gameName].lastMoveColor = message.message;
+			var gn = games[message.gameName];
+			gn.lastMoveColor = message.message;
 			sendList(message.gameName).forEach(function each(client) {
-				client.send(JSON.stringify({"type": "color", "message": games[message.gameName].lastMoveColor}));
+				client.send(JSON.stringify({"type": "color", "message": gn.lastMoveColor}));
 			});
 		}
 
 		// when new game created send games list to clients and board for first client
 		else if (message.type == 'createGame') {
 			if (!(message.message in games)) {
-				games[message.message] = {"white": ws.info.id, "black": null, "observers": [], "chessSymbolsGame": chessSymbols, "moves": {"white": [], "black": []}, "lastMoveColor": "black"};
+				var g = games[message.message] = {"white": ws.info.id, "black": null, "observers": [], "chessSymbolsGame": chessSymbols, "moves": {"white": [], "black": []}, "lastMoveColor": "black"};
 				sendGames();
 				ws.send(JSON.stringify({"type": "userColor", "message": "white"}));
 				ws.send(JSON.stringify({"type": "gameName", "message": message.message}));
-				ws.send(JSON.stringify({"type": "board", "message": games[message.message].chessSymbolsGame}));
-				ws.send(JSON.stringify({"type": "color", "message": games[message.message].lastMoveColor}));
+				ws.send(JSON.stringify({"type": "board", "message": g.chessSymbolsGame}));
+				ws.send(JSON.stringify({"type": "color", "message": g.lastMoveColor}));
 				clientsList();
 			}
 			else {
@@ -210,29 +212,32 @@ wsServer.on('connection', function connection(ws) {
 			}
 		}
 		else if (message.type == 'openGame') {
-			clientsList();
-			sendUsers();
-			ws.send(JSON.stringify({"type": "board", "message": games[message.message].chessSymbolsGame}));
-			ws.send(JSON.stringify({"type": "color", "message": games[message.message].lastMoveColor}));
-			ws.send(JSON.stringify({"type": "gameName", "message": message.message}));
-			ws.send(JSON.stringify({"type": "move", "message": games[message.message].moves}));
+			var g = games[message.message];
+			if (g) {
+				clientsList();
+				sendUsers();
+				ws.send(JSON.stringify({"type": "board", "message": g.chessSymbolsGame}));
+				ws.send(JSON.stringify({"type": "color", "message": g.lastMoveColor}));
+				ws.send(JSON.stringify({"type": "gameName", "message": message.message}));
+				ws.send(JSON.stringify({"type": "move", "message": g.moves}));
 
-			if ((!games[message.message].white && games[message.message].black != ws.info.id) || games[message.message].white === ws.info.id) {
-				games[message.message].white = ws.info.id;
-				ws.send(JSON.stringify({"type": "userColor", "message": "white"}));
-			}
-			else if ((!games[message.message].black && games[message.message].white != ws.info.id) || games[message.message].black === ws.info.id) {
-				games[message.message].black = ws.info.id;
-				ws.send(JSON.stringify({"type": "userColor", "message": "black"}));
-			}
-			else {
-				if (games[message.message].observers.indexOf(ws.info.id) == -1 && games[message.message].white != ws.info.id && games[message.message].black != ws.info.id) {
-					games[message.message].observers.push(ws.info.id);
-					ws.send(JSON.stringify({"type": "userColor", "message": null}));
+				if ((!g.white && g.black != ws.info.id) || g.white === ws.info.id) {
+					g.white = ws.info.id;
+					ws.send(JSON.stringify({"type": "userColor", "message": "white"}));
 				}
+				else if ((!g.black && g.white != ws.info.id) || g.black === ws.info.id) {
+					g.black = ws.info.id;
+					ws.send(JSON.stringify({"type": "userColor", "message": "black"}));
+				}
+				else {
+					if (g.observers.indexOf(ws.info.id) == -1 && g.white != ws.info.id && g.black != ws.info.id) {
+						g.observers.push(ws.info.id);
+						ws.send(JSON.stringify({"type": "userColor", "message": null}));
+					}
+				}
+				ws.send(JSON.stringify({"type": "color", "message": g.lastMoveColor}));
+				sendGames();
 			}
-			ws.send(JSON.stringify({"type": "color", "message": games[message.message].lastMoveColor}));
-			sendGames();
 		}
 	});
 
@@ -240,27 +245,38 @@ wsServer.on('connection', function connection(ws) {
 		var id = ws.info.id;
 		clientsList();
 		sendUsers();
-		// for (var key in games) {
-		// 	if (games[key].white === id) {
-		// 		games[key].white = null;
-		// 	}
-		// 	else if (games[key].black === id) {
-		// 		games[key].black = null;
-		// 	}
-		// 	else if (games[key].observers.indexOf(id) != -1) {
-		// 		var index = games[key].observers.indexOf(id);
-		// 		games[key].observers.splice(index, 1);
-		// 	}
-		// 	if (games[key].white === null && games[key].black === null) {
-		// 		sendList(key).forEach(function each(client) {
-		// 			client.send(JSON.stringify({"type": "board", "message": {}}));
-		// 			client.send(JSON.stringify({"type": "move", "message": null}));
-		// 			client.send(JSON.stringify({"type": "gameName", "message": null}));
-		// 		});
-		// 		delete games[key];
-		// 	}
-		sendGames();
-		}
+		var userExists = false;
+		setTimeout(function(){ 
+			wsServer.clients.forEach(function each(client) {
+				if (client.info.id === ws.info.id) {
+					userExists = true;
+				}
+			});
+			if (!userExists) {
+				for (var key in games) {
+					if (games[key].white === id) {
+						games[key].white = null;
+					}
+					else if (games[key].black === id) {
+						games[key].black = null;
+					}
+					else if (games[key].observers.indexOf(id) != -1) {
+						var index = games[key].observers.indexOf(id);
+						games[key].observers.splice(index, 1);
+					}
+					if (games[key].white === null && games[key].black === null) {
+						sendList(key).forEach(function each(client) {
+							client.send(JSON.stringify({"type": "board", "message": {}}));
+							client.send(JSON.stringify({"type": "move", "message": null}));
+							client.send(JSON.stringify({"type": "gameName", "message": null}));
+						});
+						delete games[key];
+					}
+					sendUsers();
+					sendGames();
+				}
+			}
+		}, 3000);
 	})
 
 });
@@ -316,3 +332,13 @@ var parseCookie = function(name, cookie) {
 	}
 	return null;
 };
+
+var randomId = function() {
+	var chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXTZabcdefghiklmnopqrstuvwxyz'.split('');
+	var length = 8;
+	var str = '';
+	for (var i = 0; i < length; i++) {
+		str += chars[Math.floor(Math.random() * chars.length)];
+	}
+	return str;
+}
