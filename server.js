@@ -148,7 +148,7 @@ server.listen(webSocketsServerPort, function() {
 var wsServer = new WebSocketServer({ server: server });
 
 wsServer.on('connection', function connection(ws) {
-	if (ws.upgradeReq.headers.cookie) {
+	if (ws.upgradeReq.headers.cookie && ws.upgradeReq.headers.cookie != "undefined") {
 		var id = parseCookie('userName', ws.upgradeReq.headers.cookie);
 		var face = parseCookie('face', ws.upgradeReq.headers.cookie);
 	}
@@ -160,8 +160,8 @@ wsServer.on('connection', function connection(ws) {
 
 	// send user list to clients on new connection
 	ws.info = {id: id, face: face};
-	ws.send(JSON.stringify({"type": "newGame", "message": games}));
-	ws.send(JSON.stringify({"type": "userName", "message": {"userName": ws.info.id, "face": ws.info.face}}));
+	sendCmd(ws, "newGame", games);
+	sendCmd(ws, "userName", {"userName": ws.info.id, "face": ws.info.face});
 	sendUsers();
 
 	ws.on('message', function incoming(message) {
@@ -172,7 +172,7 @@ wsServer.on('connection', function connection(ws) {
 			var gn = games[message.gameName];
 			gn.chessSymbolsGame = message.message;
 			sendList(message.gameName).forEach(function each(client) {
-				client.send(JSON.stringify({"type": "board", "message": gn.chessSymbolsGame}));
+				sendCmd(client, "board", gn.chessSymbolsGame);
 			});
 		}
 
@@ -183,7 +183,7 @@ wsServer.on('connection', function connection(ws) {
 			var short = chessSymbols[message.message.name].short;
 			gn.moves[color].push(short + message.message.captured + message.message.newPosition);
 			sendList(message.gameName).forEach(function each(client) {
-				client.send(JSON.stringify({"type": "move", "message": gn.moves}));
+				sendCmd(client, "move", gn.moves);
 			});
 		}
 
@@ -192,7 +192,7 @@ wsServer.on('connection', function connection(ws) {
 			var gn = games[message.gameName];
 			gn.lastMoveColor = message.message;
 			sendList(message.gameName).forEach(function each(client) {
-				client.send(JSON.stringify({"type": "color", "message": gn.lastMoveColor}));
+				sendCmd(client, "color", gn.lastMoveColor);
 			});
 		}
 
@@ -201,14 +201,14 @@ wsServer.on('connection', function connection(ws) {
 			if (!(message.message in games)) {
 				var g = games[message.message] = {"white": ws.info.id, "black": null, "observers": [], "chessSymbolsGame": chessSymbols, "moves": {"white": [], "black": []}, "lastMoveColor": "black"};
 				sendGames();
-				ws.send(JSON.stringify({"type": "userColor", "message": "white"}));
-				ws.send(JSON.stringify({"type": "gameName", "message": message.message}));
-				ws.send(JSON.stringify({"type": "board", "message": g.chessSymbolsGame}));
-				ws.send(JSON.stringify({"type": "color", "message": g.lastMoveColor}));
+				sendCmd(ws, "userColor", "white");
+				sendCmd(ws, "gameName", message.message);
+				sendCmd(ws, "board", g.chessSymbolsGame);
+				sendCmd(ws, "color", g.lastMoveColor);
 				clientsList();
 			}
 			else {
-				ws.send(JSON.stringify({"type": "nameError", "message": "Game with this name exists"}));
+				sendCmd(ws, "nameError", "Game with this name exists");
 			}
 		}
 		else if (message.type == 'openGame') {
@@ -216,26 +216,26 @@ wsServer.on('connection', function connection(ws) {
 			if (g) {
 				clientsList();
 				sendUsers();
-				ws.send(JSON.stringify({"type": "board", "message": g.chessSymbolsGame}));
-				ws.send(JSON.stringify({"type": "color", "message": g.lastMoveColor}));
-				ws.send(JSON.stringify({"type": "gameName", "message": message.message}));
-				ws.send(JSON.stringify({"type": "move", "message": g.moves}));
+				sendCmd(ws, "board", g.chessSymbolsGame);
+				sendCmd(ws, "color", g.lastMoveColor);
+				sendCmd(ws, "gameName", message.message);
+				sendCmd(ws, "move", g.moves);
 
 				if ((!g.white && g.black != ws.info.id) || g.white === ws.info.id) {
 					g.white = ws.info.id;
-					ws.send(JSON.stringify({"type": "userColor", "message": "white"}));
+					sendCmd(ws, "userColor", "white");
 				}
 				else if ((!g.black && g.white != ws.info.id) || g.black === ws.info.id) {
 					g.black = ws.info.id;
-					ws.send(JSON.stringify({"type": "userColor", "message": "black"}));
+					sendCmd(ws, "userColor", "black");
 				}
 				else {
 					if (g.observers.indexOf(ws.info.id) == -1 && g.white != ws.info.id && g.black != ws.info.id) {
 						g.observers.push(ws.info.id);
-						ws.send(JSON.stringify({"type": "userColor", "message": null}));
+						sendCmd(ws, "userColor", null);
 					}
 				}
-				ws.send(JSON.stringify({"type": "color", "message": g.lastMoveColor}));
+				sendCmd(ws, "color", g.lastMoveColor);
 				sendGames();
 			}
 		}
@@ -266,9 +266,9 @@ wsServer.on('connection', function connection(ws) {
 					}
 					if (games[key].white === null && games[key].black === null) {
 						sendList(key).forEach(function each(client) {
-							client.send(JSON.stringify({"type": "board", "message": {}}));
-							client.send(JSON.stringify({"type": "move", "message": null}));
-							client.send(JSON.stringify({"type": "gameName", "message": null}));
+							sendCmd(client, "board", {});
+							sendCmd(client, "move", null);
+							sendCmd(client, "gameName", null);
 						});
 						delete games[key];
 					}
@@ -299,12 +299,12 @@ var sendList = function(gameName) {
 }
 var sendGames = function() {
 	wsServer.clients.forEach(function each(client) {
-		client.send(JSON.stringify({"type": "newGame", "message": games}));
+		sendCmd(client, "newGame", games);
 	});
 }
 var sendUsers = function() {
 	wsServer.clients.forEach(function each(client) {
-		client.send(JSON.stringify({"type": "clients", "message": clientsList()}));
+		sendCmd(client, "clients", clientsList());
 	});
 }
 
@@ -333,12 +333,11 @@ var parseCookie = function(name, cookie) {
 	return null;
 };
 
+var sendCmd = function(ws, type, message) {
+	ws.send(JSON.stringify({"type": type, "message": message}));
+}
+
 var randomId = function() {
-	var chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXTZabcdefghiklmnopqrstuvwxyz'.split('');
-	var length = 8;
-	var str = '';
-	for (var i = 0; i < length; i++) {
-		str += chars[Math.floor(Math.random() * chars.length)];
-	}
+	var str = Math.random().toString(36).substring(7);
 	return str;
 }
