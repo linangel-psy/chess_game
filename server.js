@@ -1,7 +1,7 @@
 "use strict";
 
 //variables
-var webSocketsServerPort = 1337;
+var webSocketsServerPort = 3000;
 var WebSocketServer = require('ws').Server;
 var http = require('http');
 var path = require("path"); 
@@ -176,7 +176,7 @@ wsServer.on('connection', function connection(ws) {
 			});
 		}
 
-		// send last move to clients message = {"name": name, "newPosition": newPosition}
+		// send last move to clients
 		else if (message.type == 'move') {
 			var gn = games[message.gameName];
 			var color = chessSymbols[message.message.name].color;
@@ -201,9 +201,9 @@ wsServer.on('connection', function connection(ws) {
 			if (!(message.message in games)) {
 				var g = games[message.message] = {"white": ws.info.id, "black": null, "observers": [], "chessSymbolsGame": chessSymbols, "moves": {"white": [], "black": []}, "lastMoveColor": "black"};
 				sendGames();
+				sendCmd(ws, "startGame", g.chessSymbolsGame)
 				sendCmd(ws, "userColor", "white");
 				sendCmd(ws, "gameName", message.message);
-				sendCmd(ws, "board", g.chessSymbolsGame);
 				sendCmd(ws, "color", g.lastMoveColor);
 				clientsList();
 			}
@@ -311,8 +311,16 @@ var sendUsers = function() {
 // create user list
 var clientsList = function() {
 	var clients = [];
+	var inList = false;
 	wsServer.clients.forEach(function each(client) {
-		clients.push({id: client.info.id, face: client.info.face});
+		for (var i = 0; i < clients.length; i++) {
+			if (clients[i].id === client.info.id) {
+				inList = true;
+			}
+		}
+		if (!inList) {
+			clients.push({id: client.info.id, face: client.info.face});
+		}
 	});
 	return clients;
 }

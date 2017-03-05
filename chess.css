@@ -1,48 +1,68 @@
 body {
-	min-width: 1180px;
 	-webkit-touch-callout: none;
 	-webkit-user-select: none;
 	-khtml-user-select: none;
 	-moz-user-select: none;
 	-ms-user-select: none;
 	user-select: none;
+	margin: 0;
 }
 .hidden {
 	display: none;
 }
 button {
-	height: 26px;
+	line-height: 1rem;
 	border-radius: 5px;
 	border-color: #DBDBDB;
 	border-style: solid;
 	background: #FFFFFF;
 	color: #747575;
 	cursor: pointer;
+	outline: none;
+	box-shadow: 1px 2px 1px #A8A8A8;
+}
+button:active {
+	box-shadow: none;
 }
 table {
 	border-collapse: collapse;
 }
+.container {
+	display: flex;
+	flex-direction: row;
+	flex-wrap: nowrap;
+	justify-content: space-between;
+	align-items: stretch;
+}
+.game-list-box {
+	background: #C2C2C2;
+	flex: 2;
+}
+.button-flex {
+	display: flex;
+	flex-direction: row;
+	justify-content: flex-start;
+	align-items: stretch;
+}
 #gameName {
-	display: inline-block;
-	height: 20px;
-	width: 115px;
 	font-size: 0.8rem;
+	border: none;
+	outline: none;
+	padding-left: 5px;
+	flex: 3;
 }
 .warning-message {
 	color: #FF0000;
 	font-style: italic;
 }
 .create-game {
-	display: inline-block;
-	width: 75px;
 	padding: 1px;
 	border-radius: 0 5px 5px 0;
-	margin-left: -4px;
-	margin-top: 1px;
 	border-color: #218001;
 	border-style: solid;
 	background: #29A300;
 	color: #FFFFFF;
+	flex: 2;
 }
 .show-gamelist {
 	position: absolute;
@@ -51,16 +71,6 @@ table {
 	cursor: pointer;
 	color: #736E6D;
 	font-size: 2rem;
-}
-.game-list-box {
-	position: fixed;
-	z-index: 5;
-	left: 0;
-	top: 0;
-	width: 200px;
-	height: 100vh;
-	background: #C2C2C2;
-	overflow-y: auto;
 }
 .label {
 	font-weight: bold;
@@ -78,11 +88,13 @@ table {
 	padding-right: 10px;
 }
 .board-box {
-	width: 730px;
-	margin: 0 auto;
 	cursor: default;
-	padding-left: 200px;
-	padding-right: 250px;
+	flex: 8;
+	margin: auto;
+	display: flex;
+	flex-direction: row;
+	justify-content: center;
+	align-items: center;
 }
 .board {
 	margin-top: 50px;
@@ -95,7 +107,7 @@ table {
 }
 .board-num {
 	text-align: center;
-	min-width: 60px;
+	min-width: 20px;
 	min-height: 60px;
 }
 .board-cell {
@@ -103,7 +115,6 @@ table {
 	padding: 0;
 	width: 80px;
 	height: 80px;
-	font-size: 60px;
 	font-weight: normal;
 	text-align: center;
 	vertical-align: middle;
@@ -112,10 +123,22 @@ table {
 .board-cell.active {
 	background-color: red;
 }
+.chess-symbol.temporal {
+	position: absolute;
+	width: 80px;
+	height: 80px;
+	text-align: center;
+	text-shadow: 1px 3px 10px #C2C2C2;
+}
 .chess-symbol {
 	width: 100%;
 	height: 100%;
+	font-size: 60px;
 	z-index: 10;
+	text-shadow: 1px 3px 10px #C2C2C2;
+}
+.chess-symbol.active {
+
 }
 .possible-move {
 	position: relative;
@@ -143,6 +166,19 @@ table {
 	right: 0;
 	background: rgba(255, 0, 0, 0.2);
 }
+.board-overlay {
+	position: absolute;
+	text-align: center;
+	font-size: 2rem;
+	text-shadow: 3px 3px 3px #C2C2C2;
+}
+.text {
+	margin-top: 150px;
+}
+.set-button {
+	position: absolute;
+	z-index: 40;
+}
 .move-message {
 	color: green;
 	font-weight: bold;
@@ -150,25 +186,23 @@ table {
 	height: 20px;
 }
 .status-board-box {
-	position: fixed;
-	z-index: 5;
-	right: 0;
-	top: 0;
-	width: 250px;
-	height: 100vh;
+	min-width: 150px;
 	background: #C2C2C2;
 	padding-left: 15px;
-	overflow-y: auto;
+	flex: 2;
 }
 .game-label {
 	font-size: 1.5rem;
 	font-weight: bold;
 }
 .line {
-	width: 250px;
+	width: 100%;
 	height: 2px;
 	background: #000000;
 	margin: 20px 0;
+}
+.status-board {
+	margin-right: 10px;
 }
 .status-board-cell {
 	border: 1px solid #736E6D;

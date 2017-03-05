@@ -1,5 +1,5 @@
 //variables
-var size = 8;
+var size = 9;
 var letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
 var drag = false;
 var X, Y, lastCellClick, lastMoveColor, myColor, gameName;
@@ -8,18 +8,19 @@ var chessSymbolsGame = {};
 
 //create chess board
 for (var i = size; i >= 0; i--) {
-	if (i != 0) {
+	if (i != 0 && i != size) {
 		$('.board').append('<tr class="board-row row-' + i + '"></tr>');
 		$('.row-' + i).append('<td class="board-num">' + i + '</td>');
 		$.each(letters, function(num, letter) {
 			$('.row-' + i).append('<td class="board-cell" id="' + letter + i + '"></td>');
 		});
+		$('.row-' + i).append('<td class="board-num">' + i + '</td>');
 	}
 	else {
-		$('.board').append('<tr class="board-row-num"></tr>');
-		$('.board-row-num').append('<td class="board-num"></td>');
+		$('.board').append('<tr class="board-row-num' + i + '"></tr>');
+		$('.board-row-num' + i).append('<td class="board-num"></td>');
 		$.each(letters, function(num, letter) {
-			$('.board-row-num').append('<td class="board-num">' + letter + '</td>');
+			$('.board-row-num' + i).append('<td class="board-num">' + letter + '</td>');
 		});
 	}
 };
@@ -37,6 +38,111 @@ var createStatusBoard = function(moves) {
 			$('.row_' + i).append('<td class="status-board-cell cell-black">' + black + '</td>');
 		}
 	}
+}
+
+// first random position of symbols at board; moving to right positions
+var randomeBoard = function() {
+	$('.board-cell').html('');
+	$('.board-overlay').remove();
+	$('.board-box').append('<div class="board-overlay"></div>');
+	var width = $('.board')[0].clientWidth;
+	var height = $('.board')[0].clientHeight;
+	var top = $('.board')[0].offsetTop;
+	var left = $('.board')[0].offsetLeft;
+	$('.board-overlay').css({'width': width, 'height': height, 'top': top, 'left': left});
+	$('.board-overlay').append('<div class="text">Click to set chess</div>');
+	$.each (chessSymbolsGame, function(name, value){
+		var x = $('.board-overlay')[0].clientWidth - 80;
+		var y = $('.board-overlay')[0].clientHeight - 80;
+		var minY = height/8 * 3;
+		var maxY = height/2;
+		var nameStr = name.split(' ');
+		for (var i = 0; i < value.position.length; i++) {
+			var top = Math.floor(Math.random()*(maxY-minY)) + minY;
+			var left = Math.floor(Math.random()*x);
+			$('.board-overlay').append('<div class="chess-symbol temporal ' + nameStr[0] + ' ' + nameStr[1] + ' ' + i + '"></div>');
+			$('.' + nameStr[0] + '.' + nameStr[1] + '.' + i).html(value.symbol)
+			.data({'type': value.type, 'name': name, 'color': value.color})
+			.css({'top': top, 'left': left});
+		}
+	})
+
+	//jumping chess
+	var jumping = 32;
+	var jump = function(element, interval, jumpH, intervalTime) {
+		var time = intervalTime/6;
+		var angle = Math.floor(Math.random() * 180);
+		var r = Math.floor(Math.random() * 10);
+		var shr = 5;
+		if(($(element).hasClass('White') && jumpH%2 === 0) || 
+			($(element).hasClass('Black') && jumpH%2 != 0)) {
+			shr += jumpH*3;
+			$(element).animate({top: '-='+ jumpH*3 +'px', left: '+=' + r + 'px'}, time);
+			shr += jumpH*2;
+			$(element).animate({top: '-='+ jumpH*2 +'px', left: '+=' + r + 'px'}, time * 2)
+				.css({'transform': 'rotate(' + angle + 'deg)'});
+			shr -= jumpH*2;
+			$(element).animate({top: '+='+ jumpH*2 +'px'}, time * 2);
+			shr -= jumpH*3;
+			$(element).animate({top: '+='+ jumpH*3 +'px'}, time);
+		}
+		else {
+			shr += jumpH*3;
+			$(element).animate({top: '-='+ jumpH*3 +'px', left: '-=' + r + 'px'}, time);
+			shr += jumpH*2;
+			$(element).animate({top: '-='+ jumpH*2 +'px', left: '-=' + r + 'px'}, time * 2)
+				.css({'transform': 'rotate(' + -angle + 'deg)'});
+			shr -= jumpH*2;
+			$(element).animate({top: '+='+ jumpH*2 +'px'}, time * 2);
+			shr -= jumpH*3;
+			$(element).animate({top: '+='+ jumpH*3 +'px'}, time);
+		}
+		if (jumpH <= 5) {
+			clearInterval(interval);
+			jumping--;
+			if (jumping === 0) {
+				setTimeout(function(){
+					moveSymbols(interval)
+				}, 2000);
+			}
+		}
+	}
+	var intervalArr = [];
+	$('.chess-symbol.temporal').each (function(name, value){
+		var element = this;
+		var jumpH = 18;
+		var intervalTime = Math.floor(Math.random() * (1000-400) + 400);
+		jump(element, interval, jumpH, intervalTime);
+		var interval = setInterval(function(){
+			jump(element, interval, jumpH, intervalTime)
+			jumpH--;
+		}, intervalTime);
+		intervalArr.push(interval);
+	})
+
+	// symbols moving to right positions
+	var moveSymbols = function() {
+		$('.text').hide('slow');
+		$('.text').remove();
+		$('.chess-symbol.temporal').css({'transform': 'rotate(0deg)'});
+		$.each (chessSymbolsGame, function(name, value){
+			nameStr = name.split(' ');
+			for (var i = 0; i < value.position.length; i++) {
+				var top = $('#' + value.position[i])[0].offsetTop - $('.board')[0].offsetTop;
+				var left = $('#' + value.position[i])[0].offsetLeft - $('.board')[0].offsetLeft;
+				$('.' + nameStr[0] + '.' + nameStr[1] + '.' + i).animate({left: left, top: top}, 1500, function() {
+					$('.board-overlay').remove();
+					setSymbols();
+				})
+			}
+		})
+	}
+	$('.board-overlay').click(function(){
+		for (var i = 0; i < intervalArr.length; i++) {
+			clearInterval(intervalArr[i]);
+		}
+		moveSymbols();
+	});
 }
 
 // symbols on board
@@ -305,7 +411,7 @@ var getCookie = function(name) {
 	var x, y;
 	var cookiesArr = document.cookie.split(";");
 
-	for (var i = 0;i < cookiesArr.length; i++) {
+	for (var i = 0; i < cookiesArr.length; i++) {
 		x = cookiesArr[i].substr(0, cookiesArr[i].indexOf("="));
 		y = cookiesArr[i].substr(cookiesArr[i].indexOf("=") + 1);
 		x = x.replace(/^\s+|\s+$/g,"");
@@ -330,12 +436,16 @@ var reconnect = function() {
 	ws.onmessage = function(ev) {
 		var serverMessage = (JSON.parse(ev.data));
 
-		// set symbols on board from server message
-		if (serverMessage.type == 'userName') {
+		if (serverMessage.type == 'startGame') {
+			chessSymbolsGame = serverMessage.message;
+			randomeBoard();
+		}
+		else if (serverMessage.type == 'userName') {
 			$.each(serverMessage.message, function(name, value) {
 				setCookie(name, value);
 			});
 		}
+		// set symbols on board from server message
 		else if (serverMessage.type == 'board') {
 			chessSymbolsGame = serverMessage.message;
 			setSymbols();

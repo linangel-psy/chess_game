@@ -7,25 +7,29 @@
 		<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
 	</head>
 	<body>
-		<div class="game-list-box">
-			<input type="text" name="game-name" id="gameName" placeholder="Enter game name">
-			<button class="create-game">Create Game</button>
-			<div class="warning-message"></div>
-			<div class="label">Games</div>
-			<div>(click the game to join)</div>
-			<div class="game-list"></div>
-			<div class="label">Users</div>
-			<div class="users-list"></div>
-		</div>
-		<div class="board-box">
-			<table class="board"></table>
-		</div>
-		<div class="status-board-box">
-			<div class="game-label"></div>
-			<div class="user-role"></div>
-			<div class="move-message"></div>
-			<div class="line"></div>
-			<table class="status-board"></table>
+		<div class="container">
+			<div class="game-list-box">
+				<div class="button-flex">
+					<input type="text" name="game-name" id="gameName" placeholder="Enter game name">
+					<button class="create-game">Create Game</button>
+				</div>
+				<div class="warning-message"></div>
+				<div class="label">Games</div>
+				<div>(click the game to join)</div>
+				<div class="game-list"></div>
+				<div class="label">Users</div>
+				<div class="users-list"></div>
+			</div>
+			<div class="board-box">
+				<table class="board"></table>
+			</div>
+			<div class="status-board-box">
+				<div class="game-label"></div>
+				<div class="user-role"></div>
+				<div class="move-message"></div>
+				<div class="line"></div>
+				<table class="status-board"></table>
+			</div>
 		</div>
 		<script src="chess.js"></script>
 	</body>
