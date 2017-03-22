@@ -239,6 +239,18 @@ wsServer.on('connection', function connection(ws) {
 				sendGames();
 			}
 		}
+		else if (message.type == 'check') {
+			sendList(message.gameName).forEach(function each(client) {
+				sendCmd(client, "check", message.message);
+			});
+		}
+		else if (message.type == "moving") {
+			sendList(message.gameName).forEach(function each(client) {
+				if (client.info.id != ws.info.id) {
+					sendCmd(client, "moving", message.message);
+				}
+			})
+		}
 	});
 
 	ws.on('close', function() {
