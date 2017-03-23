@@ -181,6 +181,17 @@ table {
 .text {
 	margin-top: 150px;
 }
+.open-game-warning {
+	display: none;
+	position: absolute;
+	top: 45vh;
+	left: 25vw;
+	width: 50vw;
+	text-align: center;
+	color: red;
+	font-weight: bold;
+	font-size: 2em;
+}
 .set-button {
 	position: absolute;
 	z-index: 40;

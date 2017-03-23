@@ -2,6 +2,7 @@
 var size = 9;
 var letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
 var drag = false;
+var boardReady = true;
 var X, Y, lastCellClick, lastMoveColor, myColor, gameName;
 var movesList = {};
 var chessSymbolsGame = {};
@@ -42,6 +43,7 @@ var createStatusBoard = function(moves) {
 
 // first random position of symbols at board; moving to right positions
 var randomeBoard = function() {
+	boardReady = false;
 	$('.board-cell').html('');
 	$('.board-overlay').remove();
 	$('.board-box').append('<div class="board-overlay"></div>');
@@ -136,6 +138,9 @@ var randomeBoard = function() {
 				})
 			}
 		})
+		setTimeout(function(){
+			boardReady = true;
+		}, 1500);
 	}
 	$('.board-overlay').click(function(event){
 		for (var i = 0; i < intervalArr.length; i++) {
@@ -147,6 +152,7 @@ var randomeBoard = function() {
 
 // symbols on board
 var setSymbols = function() {
+	$('.open-game-warning').hide('slow');
 	$('.board-cell').html('');
 	$.each (chessSymbolsGame, function(name, value) {
 		$.each(value.position, function(k, id) {
@@ -267,6 +273,7 @@ $('.board').mouseleave(function(event) {
 
 // create new game and send to server or show/hide warning message
 $('.create-game').click(function(event) {
+	boardReady = false;
 	gameName = $('#gameName').val();
 	if (gameName) {
 		ws.send(JSON.stringify({"type": "createGame", "message": gameName}));
@@ -532,9 +539,15 @@ var reconnect = function() {
 		}
 		// set symbols on board from server message
 		else if (serverMessage.type == 'board') {
-			chessSymbolsGame = serverMessage.message;
-			setSymbols();
-			check();
+			$('.board-cell').removeClass('check');
+			if (boardReady) {
+				chessSymbolsGame = serverMessage.message;
+				setSymbols();
+				check();
+			}
+			else {
+				$('.open-game-warning').show('slow');
+			}
 		}
 
 		// set text on status board from server message
